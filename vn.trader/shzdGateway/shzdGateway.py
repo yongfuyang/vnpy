@@ -57,7 +57,6 @@ orderStatusMapReverse['4'] = STATUS_ALLTRADED
 orderStatusMapReverse['5'] = STATUS_CANCELLED
 orderStatusMapReverse['6'] = STATUS_CANCELLED
 
-s = set()
 
 ########################################################################
 class ShzdGateway(VtGateway):
@@ -79,7 +78,7 @@ class ShzdGateway(VtGateway):
         fileName = self.gatewayName + '_connect.json'
         path = os.path.abspath(os.path.dirname(__file__))
         fileName = os.path.join(path, fileName)
-
+        
         try:
             f = file(fileName)
         except IOError:
@@ -146,7 +145,7 @@ class ShzdGateway(VtGateway):
     #----------------------------------------------------------------------
     def close(self):
         """关闭"""
-        self.api.release()  # 释放接口对象
+        self.api.close()  # 释放接口对象
         
     #----------------------------------------------------------------------
     def initQuery(self):
@@ -222,6 +221,9 @@ class ShzdGatewayApi(ShzdApi):
         
         # 持仓缓存
         self.posDict = {}           # key为vtPositionName，value为VtPositionData
+        
+        # 是否进行了初始化
+        self.inited = False
         
         self.initCallbacks()
         
@@ -578,6 +580,7 @@ class ShzdGatewayApi(ShzdApi):
             return
         else:
             self.gateway.writeLog(u'接口初始化成功')
+        self.inited = True
 
         # 连接交易服务器
         n = self.registerFront(frontAddress, frontPort)
@@ -710,6 +713,11 @@ class ShzdGatewayApi(ShzdApi):
         req['11'] = self.accountNo
         self.shzdSendInfoToTrade(req)         
 
+    #----------------------------------------------------------------------
+    def close(self):
+        """关闭接口"""
+        if self.inited:
+            self.release()
 
 #----------------------------------------------------------------------
 def printDict(d):
