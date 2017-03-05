@@ -29,13 +29,11 @@ from time import sleep
 
 from eventEngine import *
 from vtGateway import VtSubscribeReq, VtLogData
-
-
 from vtFunction import *
 
-from myFunction import *            # 常见函数
+#from myFunction import *            # 常见函数
 from hisBase import *               # K 线类，属性
-from myConstant import *            # 常量
+#from myConstant import *            # 常量
 
 from threading import Thread        # 请求历史数据要发出线程才不会卡死。
 from random import randint
@@ -49,8 +47,11 @@ class HisDataEngine(object):
         自动把本地的历史数据维护到最新状态
     """
     
+    #settingFileName = 'hisData_setting.json'
+    #settingFileName = os.getcwd() + '/historicalData/' + settingFileName
     settingFileName = 'hisData_setting.json'
-    settingFileName = os.getcwd() + '/historicalData/' + settingFileName
+    path = os.path.abspath(os.path.dirname(__file__))
+    settingFileName = os.path.join(path, 'historicalData', settingFileName)    
 
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine):
@@ -125,6 +126,7 @@ class HisDataEngine(object):
                         contract = self.mainEngine.getContract(vtSymbol)
                         if not contract:
                             print  u'请先手动订阅成功一次'
+                            return
 
                     req = VtSubscribeReq()
                     req.symbol = contract.symbol

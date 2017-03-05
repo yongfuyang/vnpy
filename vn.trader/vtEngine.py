@@ -16,7 +16,7 @@ from dataRecorder.drEngine import DrEngine
 from riskManager.rmEngine import RmEngine
 from bson.objectid import ObjectId
 
-from historicalData.hisDataEngine  import  HisDataEngine     # 历史数据引擎
+from ctaAlgo.hisDataEngine  import  HisDataEngine     # 历史数据引擎
 
 
 ########################################################################
