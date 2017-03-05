@@ -14,6 +14,9 @@ from vtFunction import loadMongoSetting
 from ctaAlgo.ctaEngine import CtaEngine
 from dataRecorder.drEngine import DrEngine
 from riskManager.rmEngine import RmEngine
+from bson.objectid import ObjectId
+
+from historicalData.hisDataEngine  import  HisDataEngine     # 历史数据引擎
 
 
 ########################################################################
@@ -43,6 +46,7 @@ class MainEngine(object):
         self.ctaEngine = CtaEngine(self, self.eventEngine)
         self.drEngine = DrEngine(self, self.eventEngine)
         self.rmEngine = RmEngine(self, self.eventEngine)
+        self.hisDataEngine = HisDataEngine(self, self.eventEngine)
         
     #----------------------------------------------------------------------
     def initGateway(self):
@@ -160,6 +164,15 @@ class MainEngine(object):
             gateway.connect()
         else:
             self.writeLog(u'接口不存在：%s' %gatewayName)
+
+    #-------------------------------------------------------------------------
+    def disconnect(self, gatewayName):
+        """连接特定名称的接口"""
+        if gatewayName in self.gatewayDict:
+            gateway = self.gatewayDict[gatewayName]
+            gateway.disconnect()
+        else:
+            self.writeLog(u'接口不存在：%s' %gatewayName)
         
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq, gatewayName):
@@ -207,6 +220,15 @@ class MainEngine(object):
         if gatewayName in self.gatewayDict:
             gateway = self.gatewayDict[gatewayName]
             gateway.qryPosition()
+        else:
+            self.writeLog(u'接口不存在：%s' %gatewayName)        
+
+    #----------------------------------------------------------------------
+    def qryPositionDetail(self, gatewayName):
+        """查询特定接口的持仓"""
+        if gatewayName in self.gatewayDict:
+            gateway = self.gatewayDict[gatewayName]
+            gateway.qryPositionDetail()
         else:
             self.writeLog(u'接口不存在：%s' %gatewayName)        
         
@@ -264,6 +286,7 @@ class MainEngine(object):
         if self.dbClient:
             db = self.dbClient[dbName]
             collection = db[collectionName]
+            d['_id']=ObjectId()
             collection.insert_one(d)
         else:
             self.writeLog(u'数据插入失败，MongoDB没有连接')
@@ -328,8 +351,30 @@ class MainEngine(object):
     def getAllGatewayNames(self):
         """查询引擎中所有可用接口的名称"""
         return self.gatewayDict.keys()
-        
     
+    # ----------------------------------------------------------------------
+    def updateDbData(self, dbName=None, collectionName=None, data=None, dataList=None):
+        """向MongoDB中插入数据，data 可以是单根K线，也可以是K线列表。
+        data        单独一根K线
+        dataList    K线的列表，用于一次性推送多根K线过来
+        其实可以只判断送来的data是一个列表即可。是DICT 还是对象。
+        """
+        if not self.dbClient:       # 没有连接则连接
+                self.dbConnect()
+    
+        if self.dbClient:                         # 如果有连接数据库
+            db = self.dbClient[dbName]
+            collection = db[collectionName]
+            collection.ensure_index([('datetime', 1)], unique=True)  # #增加索引：1(ascending),-1(descending)
+    
+            if data:              # 如果传入的是单根 K 线
+                flt = {'datetime': data.datetime}
+                collection.update_one(flt, {'$set': data.__dict__}, upsert=True)
+            elif dataList:       # 如果传入的是  K 线列表
+                for data in dataList:
+                    flt = {'datetime': data.datetime}
+                    collection.update_one(flt, {'$set': data.__dict__}, upsert=True)
+
 
 ########################################################################
 class DataEngine(object):

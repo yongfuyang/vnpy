@@ -21,6 +21,7 @@ from PyQt4 import QtGui, QtCore
 
 from vnib import *
 from vtGateway import *
+from vtFunction import *
 
 
 # 以下为一些VT类型和CTP类型的映射字典
@@ -124,6 +125,8 @@ class IbGateway(VtGateway):
         self.tickerId = 0               # 订阅行情时的代码编号    
         self.tickDict = {}              # tick快照字典，key为tickerId，value为VtTickData对象
         self.tickProductDict = {}       # tick对应的产品类型字典，key为tickerId，value为产品类型
+        
+        self.hisBarDict = {}            # bar快照字典，key为tickerId，value为VtBarData对象
         
         self.orderId  = 0               # 订单编号
         self.orderDict = {}             # 报单字典，key为orderId，value为VtOrderData对象
@@ -282,6 +285,61 @@ class IbGateway(VtGateway):
         """关闭"""
         self.api.eDisconnect()
 
+    def getHistoricalData(self, tickerId=None,  contractReq=None, endDateTimeStr=None, durationStr=None, barSizeSetting=12, whatToShow='MIDPOINT', useRTH=0      ):
+        """
+        # contract 要转换成 IB 的 contract
+        # formatDate  返回柱的时间格式  1 日期时间格式 yyyymmdd hh:mm:ss   2 返回 timestamp  日线只能返回EST 时间格式
+        # usrRTH 0 返回所有数据  1 只返回交易时段的数据
+        # whatToShow 提取数据性质  TRADES  MIDPOINT BID ASK BID_ASK HISTORICAL_VOLATILITY
+        # barSize 返回的K线长度 1 secs 5 secs 15 secs 30 secs 1 min 2 mins 3 mins 5 mins 15 mins 30 mins 1 hour 1day
+            在常量文件中，已经定义一个柱体长度对应表。传入一个数值，自动转化为IB的周期字符串。
+        # durationStr 请求的时间区域，S 秒  D 天  W 星期  M 月  Y  年， 默认使用秒
+        # endDateTime yyyymmdd hh:mm:ss est 为了兼容TWS行情软件，一律使用est时区
+        # contract  合约
+        """
+        # 创建请求历史数据的合约对象
+        newcontract = Contract()
+        newcontract.m_localSymbol = str(contractReq.symbol)
+        newcontract.m_exchange = exchangeMap.get(contractReq.exchange, '')
+        newcontract.m_secType = productClassMap.get(contractReq.productClass, '')
+        newcontract.m_currency = currencyMap.get(contractReq.currency, '')
+        newcontract.m_expiry = contractReq.expiry
+        newcontract.m_strike = contractReq.strikePrice
+        newcontract.m_right = optionTypeMap.get(contractReq.optionType, '')
+    
+        # 更新tickerId， 每次请求都不同
+        if tickerId:
+            self.tickerId =  tickerId       # 如果有 tickerId就使用传入进来的，否则使用默认的
+        else:
+            self.tickerId += 1
+    
+        # 创建新的 Bar对象并保存到字典中
+        bar = VtBarData()
+        bar.symbol = contractReq.symbol
+        bar.exchange = contractReq.exchange
+        bar.vtSymbol = '.'.join([bar.symbol, bar.exchange])
+        bar.gatewayName = self.gatewayName
+        bar.barsize = barSizeSetting            # 请求历史数据时传来的编号
+        self.hisBarDict[self.tickerId] = bar    # 这里要使用自己的Bar对象，不能使用本身的 tickDict，否则它会推送到 tick 去。
+    
+        # 把barSizeSetting 转化为 IB 识别的字符串， 传递进来的是代号
+        #barSizeStr = BARSIZE[barSizeSetting]
+        barSizeStr = BARSIZE_DICT.get(barSizeSetting,'')
+        if not barSizeStr:
+            print  u'K线周期编号错误'
+            log = VtLogData()
+            log.gatewayName = self.gatewayName
+            log.logContent = u'K线周期编号错误'
+            self.onLog(log)
+            return
+        if endDateTimeStr is None:
+            endDateTimeStr = toESTtime( returnStr=True )      #如果没有传入，就以当前时间。 把当前时间转化为EST时间，并返回 str 格式，否则返回 datetime类型
+    
+        formatDate = 2  # 返回的K线时间为 timeStamp, 如果日线则返回EST时间
+    
+        # 发出历史数据请求
+        self.api.reqHistoricalData(self.tickerId, newcontract, endDateTimeStr, durationStr, barSizeStr, whatToShow, useRTH, formatDate)
+        
 
 ########################################################################
 class IbWrapper(IbApi):
@@ -303,6 +361,7 @@ class IbWrapper(IbApi):
         self.contractDict = gateway.contractDict    # contract字典
         self.tickProductDict = gateway.tickProductDict
         self.subscribeReqDict = gateway.subscribeReqDict
+        self.hisBarDict = gateway.hisBarDict
 
     #----------------------------------------------------------------------
     def nextValidId(self, orderId):
@@ -340,6 +399,14 @@ class IbWrapper(IbApi):
         err.errorID = errorCode
         err.errorMsg = errorString.decode('GBK')
         self.gateway.onError(err)
+        
+        if  errorCode==504 and   self.gateway.autoConnect == True:
+            log = VtLogData()
+            log.gatewayName = self.gatewayName
+            log.logContent = (u'Not connected, 10秒后重新登录')
+            self.gateway.onLog(log)
+            thread = Thread(target=self.gateway.connect, kwargs=({'delayTime': 10}))
+            thread.start()        
         
     #----------------------------------------------------------------------
     def accountSummary(self, reqId, account, tag, value, curency):
@@ -613,7 +680,34 @@ class IbWrapper(IbApi):
     #----------------------------------------------------------------------
     def historicalData(self, reqId, date, open_, high, low, close, volume, barCount, WAP, hasGaps):
         """"""
-        pass
+        """
+        reqId  请求的ID        date    日期时间        open        high        low        close
+        volume  交易量        count   交易笔数        Wap     加权平均价        hasGaps 是否有间断
+        """
+        # 先判断 high > 0 才是传来的数据，否则不对。
+        finishedFlag = u'finished'
+        """行情推送（价格相关）"""
+        if high > 0:
+            bar = self.hisBarDict[reqId]
+            bar.__setattr__('open', open)
+            bar.__setattr__('high', high)
+            bar.__setattr__('low', low)
+            bar.__setattr__('close', close)
+            bar.__setattr__('volume', volume)
+    
+            #dt = timeStampToESTtime(date)   #自己的小函数，把IB返回的timestamp转化为EST日期。
+            dt = toESTtime(timestamp=date)  # 自己的小函数，把IB返回的timestamp转化为EST日期。
+            bar.datetime = dt
+            bar.time = dt.strftime('%H:%M:%S.%f')
+            bar.date = dt.strftime('%Y%m%d')
+            # 行情数据更新
+            newbar = copy(bar)
+            self.gateway.onHistoricalData(newbar)
+        elif  finishedFlag in date :
+            self.gateway.onHistoricalDataDownloadFinished(reqId)
+            #print u'本次请求数据接收结束'
+        else:
+            return
         
     #----------------------------------------------------------------------
     def scannerParameters(self, xml):
@@ -734,4 +828,5 @@ class IbWrapper(IbApi):
     def softDollarTiers(self, reqId, tiers):
         """"""
         pass
-        
+
+               

@@ -16,8 +16,14 @@ sys.path.append('..')
 # CTA引擎中涉及到的交易方向类型
 CTAORDER_BUY = u'买开'
 CTAORDER_SELL = u'卖平'
+CTAORDER_SELLTODAY = u'卖平今'
+CTAORDER_SELLYESTERDAY = u'卖平昨'
 CTAORDER_SHORT = u'卖开'
 CTAORDER_COVER = u'买平'
+CTAORDER_COVERTODAY = u'买今平'
+CTAORDER_COVERYESTERDAY = u'买平昨'
+DIRECTION_LONG = u'多'
+DIRECTION_SHORT = u'空'
 
 # 本地停止单状态
 STOPORDER_WAITING = u'等待中'
@@ -31,9 +37,68 @@ STOPORDERPREFIX = 'CtaStopOrder.'
 SETTING_DB_NAME = 'VnTrader_Setting_Db'
 POSITION_DB_NAME = 'VnTrader_Position_Db'
 
+BARSIZE_DICT = {}
+BARSIZE_DICT = {
+    0 : 'tick',
+    1 : '1 secs',
+    2 : '5 secs',
+    3 : '15 secs',
+    4 : '30 secs',
+    5 : '1 min',
+    6 : '2 mins',
+    7 : '3 min',
+    8 : '5 mins',
+    9 : '15 mins',
+    10 : '30 mins',
+    11 : '1 hour',
+    12 : '1 day'
+}
+
+
+# 使用的缓存表
+# 临时变量使用 barSize
+BARSIZE_DFNAME_DICT = {}
+BARSIZE_DFNAME_DICT = {
+    0 : 'df_tick',
+    1 : 'df_S_Bar',
+    2 : 'df_S5_Bar',
+    3 : 'df_S15_Bar',
+    4 : 'df_S30_Bar',
+    5 : 'df_M1_Bar',
+    6 : 'df_M2_Bar',
+    7 : 'df_M3_Bar',
+    8 : 'df_M5_Bar',
+    9 : 'df_M15_Bar',
+    10 : 'df_M30_Bar',
+    11 : 'df_H_Bar',
+    12 : 'df_D_Bar'
+}
+
+# BARSIZE 跟本地数据库名的对应关系
+# 库名要同 ctaBase 一致
+BARSIZE_DBNAME_DICT = {}
+BARSIZE_DBNAME_DICT = {
+    0:'VnTrader_Tick_Db',
+    5:'VnTrader_1Min_Db',
+    8:'VnTrader_5Min_Db',
+    9: 'VnTrader_15Min_Db',
+    10: 'VnTrader_30Min_Db',
+    11: 'VnTrader_Hour_Db',
+    12: 'VnTrader_Daily_Db'
+}
+
+
+# 数据库名称
+SETTING_DB_NAME = 'VnTrader_Setting_Db'
 TICK_DB_NAME = 'VnTrader_Tick_Db'
 DAILY_DB_NAME = 'VnTrader_Daily_Db'
-MINUTE_DB_NAME = 'VnTrader_1Min_Db'
+MINUTE_DB_NAME = 'VnTrader_1Min_Db'         # 分钟 数据库名称 原名是 ： 'VnTrader_1Min_Db'
+
+# 自己加上
+HOUR_DB_NAME =  'VnTrader_Hour_Db'
+MINUTE5_DB_NAME = 'VnTrader_5Min_Db'
+MINUTE15_DB_NAME = 'VnTrader_15Min_Db'
+MINUTE30_DB_NAME = 'VnTrader_30Min_Db'
 
 # 引擎类型，用于区分当前策略的运行环境
 ENGINETYPE_BACKTESTING = 'backtesting'  # 回测
