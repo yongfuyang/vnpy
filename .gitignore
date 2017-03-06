@@ -50,3 +50,5 @@ vn.lts/build/*
 vn.trader/ctaAlgo/data/*
 vn.trader/build/*
 vn.trader/dist/*
+vn.archive/vn.cs/vncshshlp/test/cslog/cserror.log
+vn.trader/ctpGateway/CTP_connect.json

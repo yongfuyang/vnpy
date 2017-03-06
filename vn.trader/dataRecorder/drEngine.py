@@ -19,6 +19,11 @@ from vtGateway import VtSubscribeReq, VtLogData
 from drBase import *
 from vtFunction import todayDate
 
+from datetime import time
+import time as gtime
+import pymongo
+from dateutil.parser import parse
+
 
 ########################################################################
 class DrEngine(object):
@@ -26,8 +31,23 @@ class DrEngine(object):
     
     settingFileName = 'DR_setting.json'
     path = os.path.abspath(os.path.dirname(__file__))
-    settingFileName = os.path.join(path, settingFileName)    
-
+    settingFileName = os.path.join(path, settingFileName)
+    
+    #过滤掉的时间区间，注意集合竞价tick被过滤了。
+    invalid_sections=[(time(2,30,59),time(9,0,0)),
+                      (time(11,30,59),time(13,0,0)),
+                      (time(15,15,0),time(21,0,0))]
+    
+    #本地时间在此区间时对收到的Tick数据不处理，避免有时期货公司会抽风把数据重推一次。
+    invalid_local_section=(time(5,0,0),time(8,30,0))
+    
+    '''
+    作者：Jerry He
+    链接：https://zhuanlan.zhihu.com/p/24662087
+    来源：知乎
+    著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。    
+    '''
+    
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine):
         """Constructor"""
@@ -131,6 +151,13 @@ class DrEngine(object):
         """处理行情推送"""
         tick = event.dict_['data']
         vtSymbol = tick.vtSymbol
+        
+        """处理行情推送"""
+        # 1. 本地时间检查
+        local_datetime=datetime.now()
+        local_time=local_datetime.time()
+        if local_time>invalid_local_section[0] and local_time<invalid_local_section[1]:
+            return
 
         # 转化Tick格式
         drTick = DrTickData()
@@ -138,7 +165,28 @@ class DrEngine(object):
         for key in d.keys():
             if key != 'datetime':
                 d[key] = tick.__getattribute__(key)
-        drTick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')            
+        #drTick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')            
+        
+        #防御时间格式变为 ”9:00:00.5"
+        if tick.time[2] != ':': 
+            tick.time = '0' + tick.time        
+        tick_hour = int(tick.time[0:2])  
+        local_hour = local_time.hour
+        real_date=local_datetime
+        if tick_hour == 23 and local_hour == 0:#行情时间慢于系统时间
+            real_date+=timedelta(-1)
+        elif tick_hour == 0 and local_hour == 23:#系统时间慢于行情时间
+            real_date+=timedelta(1)
+    
+        tick.time = tick.time.ljust(12,'0')
+        drTick.datetime = datetime(real_date.year,real_date.month,real_date.day,
+            int(tick.time[0:2]), int(tick.time[3:5]), int(tick.time[6:8]), int(tick.time[9:12])*1000)
+    
+        tmpTime=drTick.datetime.time()
+        for sec in invalid_sections:
+            if tmpTime>sec[0] and tmpTime<sec[1]:
+                return               
+        
         
         # 更新Tick数据
         if vtSymbol in self.tickDict:
