@@ -130,7 +130,7 @@ class HisDataEngine(object):
 
                     req = VtSubscribeReq()
                     req.symbol = contract.symbol
-                    req.currency = contract.currency
+                    #req.currency = contract.currency
                     req.exchange = contract.exchange
                     req.productClass = contract.productClass
 
