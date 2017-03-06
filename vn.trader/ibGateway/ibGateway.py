@@ -352,10 +352,10 @@ class IbGateway(VtGateway):
         self.api.reqHistoricalData(self.tickerId, newcontract, endDateTimeStr, durationStr, barSizeStr, whatToShow, useRTH, formatDate, TagValueList())
         
 
-    def onHistoricalData(self,bar):
+    def onHistoricalData(self, bar):
         pass
     
-    def onHistoricalDataDownloadFinished(reqId):
+    def onHistoricalDataDownloadFinished(self, reqId):
         pass
     
 ########################################################################
@@ -417,13 +417,15 @@ class IbWrapper(IbApi):
         err.errorMsg = errorString.decode('GBK')
         self.gateway.onError(err)
         
+        '''
         if  errorCode==504 and   self.gateway.autoConnect == True:
             log = VtLogData()
             log.gatewayName = self.gatewayName
             log.logContent = (u'Not connected, 10秒后重新登录')
             self.gateway.onLog(log)
-            thread = Thread(target=self.gateway.connect, kwargs=({'delayTime': 10}))
-            thread.start()        
+            thread = Thread(target=self.gateway.connect))
+            thread.start()       
+        '''
         
     #----------------------------------------------------------------------
     def accountSummary(self, reqId, account, tag, value, curency):
