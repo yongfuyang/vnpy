@@ -125,9 +125,17 @@ class CtpGateway(VtGateway):
         # 创建行情和交易接口对象
         self.mdApi.connect(userID, password, brokerID, mdAddress)
         self.tdApi.connect(userID, password, brokerID, tdAddress)
-        
+        self.mdConnected = True
+        self.tdConnected = True
         # 初始化并启动查询
         self.initQuery()
+
+    #--------------------------------------------------------------------
+    def disconnect(self):
+        #断开链接
+        #self.mdApi.close()
+        if self.tdConnected:
+            self.tdApi.close()
     
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq):
@@ -153,6 +161,11 @@ class CtpGateway(VtGateway):
     def qryPosition(self):
         """查询持仓"""
         self.tdApi.qryPosition()
+
+    # ----------------------------------------------------------------------
+    def qryPositionDetail(self):
+       """查询持仓明细"""
+       self.tdApi.qryPositionDetail()
         
     #----------------------------------------------------------------------
     def close(self):
@@ -167,7 +180,8 @@ class CtpGateway(VtGateway):
         """初始化连续查询"""
         if self.qryEnabled:
             # 需要循环的查询函数列表
-            self.qryFunctionList = [self.qryAccount, self.qryPosition]
+            self.qryFunctionList = [self.qryAccount, self.qryPosition, self.qryPositionDetail]
+            
             
             self.qryCount = 0           # 查询触发倒计时
             self.qryTrigger = 2         # 查询触发点
@@ -456,6 +470,8 @@ class CtpTdApi(TdApi):
         self.sessionID = EMPTY_INT          # 会话编号
         
         self.posBufferDict = {}             # 缓存持仓数据的字典
+        self.posBufferDictShfe = {}         # 缓存上期所持仓数据的字典
+        self.posDetailBufferDict = {}       # 缓存持仓明细数据的字典
         self.symbolExchangeDict = {}        # 保存合约代码和交易所的印射关系
         self.symbolSizeDict = {}            # 保存合约代码和合约大小的印射关系
         
@@ -792,9 +808,13 @@ class CtpTdApi(TdApi):
         
     #----------------------------------------------------------------------
     def onRspQryInvestorPositionDetail(self, data, error, n, last):
-        """"""
-        pass
-        
+        """查询持仓明细回报"""
+
+        posBuffer = PositionBuffer2(data, self.gatewayName)
+        pos =  posBuffer.updateBuffer(data)
+        if pos.symbol:
+            self.gateway.onPositionDetail(pos)
+    
     #----------------------------------------------------------------------
     def onRspQryNotice(self, data, error, n, last):
         """"""
@@ -1285,6 +1305,17 @@ class CtpTdApi(TdApi):
             req['BrokerID'] = self.brokerID
             self.reqID += 1
             self.reqUserLogin(req, self.reqID)   
+            
+    #----------------------------------------------------------------------
+    def logout(self):
+        '''登出服务器'''
+        if self.userID and self.password and self.brokerID:
+            req = {}
+            req['UserID'] = self.userID
+            req['Password'] = self.password
+            req['BrokerID'] = self.brokerID
+            #print(self.reqID)
+            self.reqUserLogout(req,self.reqID)
         
     #----------------------------------------------------------------------
     def qryAccount(self):
@@ -1299,7 +1330,18 @@ class CtpTdApi(TdApi):
         req = {}
         req['BrokerID'] = self.brokerID
         req['InvestorID'] = self.userID
+        self.posBufferDict ={}
         self.reqQryInvestorPosition(req, self.reqID)
+
+    # ----------------------------------------------------------------------
+    def qryPositionDetail(self):
+        """查询持仓明细"""
+        self.reqID += 1
+        req = {}
+        req['BrokerID'] = self.brokerID
+        req['InvestorID'] = self.userID
+        self.posDetailBufferDict ={}
+        self.reqQryInvestorPositionDetail(req, self.reqID)
         
     #----------------------------------------------------------------------
     def sendOrder(self, orderReq):
@@ -1369,7 +1411,8 @@ class CtpTdApi(TdApi):
     #----------------------------------------------------------------------
     def close(self):
         """关闭"""
-        self.exit()
+        #self.exit()
+        self.logout()
 
 
 ########################################################################
@@ -1442,7 +1485,42 @@ class PositionBuffer(object):
         return copy(self.pos)
 
 
-#----------------------------------------------------------------------
+########################################################################
+class PositionBuffer2(object):
+    """用来缓存持仓明细的数据，处理上期所的数据返回分今昨的问题"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, data, gatewayName):
+        """Constructor"""
+        self.symbol = data['InstrumentID']
+        self.direction = productClassMapReverse.get(data['Direction'], '')
+
+        self.position = EMPTY_INT
+        self.openprice = EMPTY_FLOAT
+        self.opendate = EMPTY_STRING
+        self.tradeid = EMPTY_STRING
+
+        # 通过提前创建持仓数据对象并重复使用的方式来降低开销
+        pos = VtPositionDetailData()
+        pos.symbol = self.symbol
+        pos.vtSymbol = self.symbol
+        pos.gatewayName = gatewayName
+        pos.direction = self.direction
+        pos.vtPositionDetailName = '.'.join([pos.vtSymbol, pos.direction])
+        self.pos = pos
+
+
+    def updateBuffer(self, data):
+
+            self.pos.position = data['Volume']
+            self.pos.openprice = data['OpenPrice']
+            self.pos.opendate = data['OpenDate']
+            self.pos.tradeid = data['TradeID']
+
+            return copy(self.pos)
+
+
+    #----------------------------------------------------------------------
 def test():
     """测试"""
     from PyQt4 import QtCore

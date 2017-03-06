@@ -306,7 +306,37 @@ class CtaEngine(object):
                 posBuffer.vtSymbol = pos.vtSymbol
                 self.posBufferDict[pos.vtSymbol] = posBuffer
             posBuffer.updatePositionData(pos)
-    
+            for strategy in self.tickStrategyDict[pos.vtSymbol]:
+                if pos.direction == DIRECTION_LONG:
+                    strategy.exchangePos = pos.position
+                else:
+                    strategy.exchangePos = -pos.position
+                strategy.onPosition(pos)
+
+    #----------------------------------------------------------------------
+    def processExchangePositionEvent(self, event):
+        pos = event.dict_['data']
+        if pos.vtSymbol in self.tickStrategyDict:
+            for strategy in self.tickStrategyDict[pos.vtSymbol]:
+                if pos.direction == DIRECTION_LONG:
+                    strategy.exchangePos = pos.position
+                else:
+                    strategy.exchangePos = -pos.position
+                strategy.onPosition(pos)
+
+    #---------------------------------------------------------------------
+    def onTimer(self, event):
+        dt = datetime.now()
+        if dt.hour == 19 and dt.minute == 58 and dt.second == 1:  # 夜盘开盘第一时间重置
+            self.posBufferDict = {}  # 清空则默认使用平昨
+            self.posBufferDictShfe = {}
+
+        if self.tickStrategyDict:
+            for key in self.tickStrategyDict:
+                for strategy in self.tickStrategyDict[key]:
+                    strategy.onTimer()
+        pass
+
     #----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
@@ -314,6 +344,8 @@ class CtaEngine(object):
         self.eventEngine.register(EVENT_ORDER, self.processOrderEvent)
         self.eventEngine.register(EVENT_TRADE, self.processTradeEvent)
         self.eventEngine.register(EVENT_POSITION, self.processPositionEvent)
+        #self.eventEngine.register(EVENT_POSITION, self.processExchangePositionEvent)
+        self.eventEngine.register(EVENT_TIMER, self.onTimer)
  
     #----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
@@ -403,6 +435,13 @@ class CtaEngine(object):
                 req.productClass = strategy.productClass
                 
                 self.mainEngine.subscribe(req, contract.gatewayName)
+                
+                # 下面自己加上的
+                # 把策略的vtSymbol 放到事件中，以让 历史数据引擎去处理
+                event = Event(EVENT_STR_INIT_DATA)
+                # 合约
+                event.dict_['data'] = strategy.vtSymbol  # 合约vtSymbol名称
+                self.eventEngine.put(event)                
             else:
                 self.writeCtaLog(u'%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
 
@@ -515,7 +554,17 @@ class CtaEngine(object):
         """触发策略状态变化事件（通常用于通知GUI更新）"""
         event = Event(EVENT_CTA_STRATEGY+name)
         self.eventEngine.put(event)
-        
+
+
+    #----------------------------------------------------------------------
+    def onTimer(self, event):
+        # 换日之时，把把策略的posBuffer的今仓改为昨仓
+        dt = datetime.now()
+        if dt.hour == 21:
+            self.posBufferDict = {}
+            self.posBufferDictShfe = {}
+
+
     #----------------------------------------------------------------------
     def callStrategyFunc(self, strategy, func, params=None):
         """调用策略的函数，若触发异常则捕捉"""

@@ -68,6 +68,19 @@ class VtGateway(object):
         event2 = Event(type_=EVENT_POSITION+position.vtSymbol)
         event2.dict_['data'] = position
         self.eventEngine.put(event2)
+
+    #----------------------------------------------------------------------
+    def onPositionDetail(self, positiondetail):
+        """持仓明细信息推送"""
+        # 通用事件
+        event1 = Event(type_=EVENT_POSITIONDETAIL)
+        event1.dict_['data'] = positiondetail
+        self.eventEngine.put(event1)
+
+        # 特定合约代码的事件
+        event2 = Event(type_=EVENT_POSITIONDETAIL + positiondetail.vtSymbol)
+        event2.dict_['data'] = positiondetail
+        self.eventEngine.put(event2)
     
     #----------------------------------------------------------------------
     def onAccount(self, account):
@@ -110,6 +123,11 @@ class VtGateway(object):
     def connect(self):
         """连接"""
         pass
+
+    #----------------------------------------------------------------------
+    def disconnect(self):
+        """断开连接"""
+        pass
     
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq):
@@ -134,6 +152,11 @@ class VtGateway(object):
     #----------------------------------------------------------------------
     def qryPosition(self):
         """查询持仓"""
+        pass
+    
+    # ----------------------------------------------------------------------
+    def qryPositionDetail(self):
+        """查询持仓明细"""
         pass
     
     #----------------------------------------------------------------------
@@ -208,7 +231,30 @@ class VtTickData(VtBaseData):
         self.askVolume3 = EMPTY_INT
         self.askVolume4 = EMPTY_INT
         self.askVolume5 = EMPTY_INT         
-    
+
+class VtBarData(VtBaseData):
+    """K线数据"""
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        super(VtBaseData, self).__init__()
+
+        self.vtSymbol = EMPTY_STRING         # vt系统代码
+        self.symbol = EMPTY_STRING           # 代码
+        self.exchange = EMPTY_STRING         # 交易所
+        self.barsize = EMPTY_INT             # K线周期   自己增加
+
+        self.open = EMPTY_FLOAT  # OHLC
+        self.high = EMPTY_FLOAT
+        self.low = EMPTY_FLOAT
+        self.close = EMPTY_FLOAT
+
+        self.date = EMPTY_STRING  # bar开始的时间，日期
+        self.time = EMPTY_STRING  # 时间
+        self.datetime = None  # python的datetime时间对象
+
+        self.volume = EMPTY_INT  # 成交量
+        self.openInterest = EMPTY_INT  # 持仓量    
     
 ########################################################################
 class VtTradeData(VtBaseData):
@@ -430,6 +476,31 @@ class VtCancelOrderReq(object):
         self.orderID = EMPTY_STRING             # 报单号
         self.frontID = EMPTY_STRING             # 前置机号
         self.sessionID = EMPTY_STRING           # 会话号
+
+
+########################################################################
+class VtPositionDetailData(VtBaseData):
+    """持仓明细数据类"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        super(VtPositionDetailData, self).__init__()
+
+        # 代码编号相关
+        self.symbol = EMPTY_STRING  # 合约代码
+        self.exchange = EMPTY_STRING  # 交易所代码
+        self.vtSymbol = EMPTY_STRING  # 合约在vt系统中的唯一代码，合约代码.交易所代码
+
+        # 持仓相关
+        self.direction = EMPTY_STRING  # 持仓方向
+        self.opendate = EMPTY_STRING  #开仓日期
+        self.position = EMPTY_INT  # 持仓量
+        self.openprice = EMPTY_FLOAT #开仓价格
+        self.tradeid = EMPTY_STRING #成交编号
+        self.vtPositionDetailName = EMPTY_STRING  # 持仓在vt系统中的唯一代码，通常是vtSymbol.方向
+
+        
   
     
     

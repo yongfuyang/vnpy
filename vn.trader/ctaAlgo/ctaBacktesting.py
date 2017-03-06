@@ -15,6 +15,8 @@ import pymongo
 from ctaBase import *
 from ctaSetting import *
 
+import csv
+
 from vtConstant import *
 from vtGateway import VtOrderData, VtTradeData
 from vtFunction import loadMongoSetting
@@ -81,6 +83,7 @@ class BacktestingEngine(object):
         
         self.logList = []               # 日志记录
         
+        self.writeTrade = False
         # 当前最新数据，用于模拟成交用
         self.tick = None
         self.bar = None
@@ -120,7 +123,7 @@ class BacktestingEngine(object):
     #----------------------------------------------------------------------
     def loadHistoryData(self):
         """载入历史数据"""
-        host, port = loadMongoSetting()
+        host, port, logging = loadMongoSetting()
         
         self.dbClient = pymongo.MongoClient(host, port)
         collection = self.dbClient[self.dbName][self.symbol]          
@@ -460,9 +463,20 @@ class BacktestingEngine(object):
     #----------------------------------------------------------------------
     def output(self, content):
         """输出内容"""
-        print str(datetime.now()) + "\t" + content 
-    
-    #----------------------------------------------------------------------
+        print str(datetime.now()) + "\t" + content
+
+    # -------------------------------------------------------------------------
+    def output_csv(self, rlist):
+        """记录交易记录"""
+        writer = csv.writer(open('out.csv', "wb"))
+        fieldnames = ['开仓价格', '平仓价格', '开仓时间', '平仓时间', '交易数量', '成交金额', '手续费成本', '滑点成本', '净盈亏']
+        writer.writerow(fieldnames)
+        for i in rlist:
+            a = [i.entryPrice, i.exitPrice, i.entryDt, i.exitDt, i.volume, i.turnover, i.commission, i.slippage, i.pnl]
+            writer.writerow(a)
+
+    # ----------------------------------------------------------------------
+
     def calculateBacktestingResult(self):
         """
         计算回测结果
@@ -636,7 +650,10 @@ class BacktestingEngine(object):
         d['averageWinning'] = averageWinning
         d['averageLosing'] = averageLosing
         d['profitLossRatio'] = profitLossRatio
-        
+
+        if (self.writeTrade):
+            self.output_csv(resultList)
+
         return d
         
     #----------------------------------------------------------------------

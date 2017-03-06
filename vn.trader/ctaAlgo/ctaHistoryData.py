@@ -33,7 +33,7 @@ class HistoryDataEngine(object):
     #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        host, port = loadMongoSetting()
+        host, port, logging = loadMongoSetting()
         
         self.dbClient = pymongo.MongoClient(host, port)
         self.datayesClient = DatayesClient()
@@ -322,7 +322,7 @@ def loadMcCsv(fileName, dbName, symbol):
     print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
     
     # 锁定集合，并创建索引
-    host, port = loadMongoSetting()
+    host, port, logging= loadMongoSetting()
     
     client = pymongo.MongoClient(host, port)    
     collection = client[dbName][symbol]
@@ -349,13 +349,156 @@ def loadMcCsv(fileName, dbName, symbol):
     
     print u'插入完毕，耗时：%s' % (time()-start)
 
+#----------------------------------------------------------------------
+def loadMinuteTxt(fileName, dbName, symbol):
+    """将Multicharts导出的csv格式的历史数据插入到Mongo数据库中"""
+    import csv
+    import pandas as pd
 
+    start = time()
+    print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+    # 锁定集合，并创建索引
+    host, port, logging = loadMongoSetting()
+
+    client = pymongo.MongoClient(host, port)
+    collection = client[dbName][symbol]
+    collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)
+
+    # 读取数据和插入到数据库
+    lines = open(fileName,'r').readlines()
+    lines = [line.replace('\t',',') for line in lines]
+    newfile = open('swap.txt','w')
+    newfile.writelines('Date,Time,Open,High,Low,Close,Vol,Val\r\n')
+    newfile.writelines(lines)
+    newfile.close()
+    reader = csv.DictReader(file('swap.txt', 'r',))
+
+    for d in reader:
+        bar = CtaBarData()
+        bar.vtSymbol = symbol
+        bar.symbol = symbol
+        bar.open = float(d['Open'])
+        bar.high = float(d['High'])
+        bar.low = float(d['Low'])
+        bar.close = float(d['Close'])
+        bar.date = datetime.strptime(d['Date'], '%Y/%m/%d').strftime('%Y%m%d')
+        bar.time = d['Time']
+        bar.datetime = datetime.strptime(bar.date + ' ' + bar.time, '%Y%m%d %H:%M')
+        bar.volume = d['Vol']
+        bar.openInterest = d['Val']
+
+        flt = {'datetime': bar.datetime}
+        collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)
+        print bar.date, bar.time
+
+    print u'插入完毕，耗时：%s' % (time()-start)
+
+
+def loadDayTxt(fileName, dbName, symbol):
+    """将Multicharts导出的csv格式的历史数据插入到Mongo数据库中"""
+    import csv
+    import pandas as pd
+
+    start = time()
+    print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+    # 锁定集合，并创建索引
+    host, port, logging = loadMongoSetting()
+
+    client = pymongo.MongoClient(host, port)
+    collection = client[dbName][symbol]
+    collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)
+
+    # 读取数据和插入到数据库
+    lines = open(fileName,'r').readlines()
+    lines = [line.replace('\t',',') for line in lines]
+    newfile = open('swap.txt','w')
+    newfile.writelines('Date,Open,High,Low,Close,Vol,Val\r\n')
+    newfile.writelines(lines)
+    newfile.close()
+    reader = csv.DictReader(file('swap.txt', 'r',))
+
+    for d in reader:
+        bar = CtaBarData()
+        bar.vtSymbol = symbol
+        bar.symbol = symbol
+        bar.open = float(d['Open'])
+        bar.high = float(d['High'])
+        bar.low = float(d['Low'])
+        bar.close = float(d['Close'])
+        bar.date = datetime.strptime(d['Date'], '%Y/%m/%d').strftime('%Y%m%d')
+        bar.time = "15:00"
+        bar.datetime = datetime.strptime(bar.date, '%Y%m%d')
+        bar.volume = d['Vol']
+        bar.openInterest = d['Val']
+
+        flt = {'datetime': bar.datetime}
+        collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)
+        print bar.date, bar.time
+
+    print u'插入完毕，耗时：%s' % (time()-start)
+#----------------------------------------------------------------------
+def loadTdxCsv(fileName, dbName, symbol):
+    """将通达信导出的csv格式的历史分钟数据插入到Mongo数据库中"""
+    import csv
+    
+    start = time()
+    print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+    
+    # 锁定集合，并创建索引
+    host, port, logging = loadMongoSetting()
+    
+    client = pymongo.MongoClient(host, port)    
+    collection = client[dbName][symbol]
+    collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+    
+    # 读取数据和插入到数据库
+    reader = csv.reader(file(fileName, 'r'))
+    for d in reader:
+        bar = CtaBarData()
+        bar.vtSymbol = symbol
+        bar.symbol = symbol
+        bar.open = float(d[2])
+        bar.high = float(d[3])
+        bar.low = float(d[4])
+        bar.close = float(d[5])
+        bar.date = datetime.strptime(d[0], '%Y/%m/%d').strftime('%Y%m%d')
+        bar.time = d[1][:2]+':'+d[1][2:4]+':00'
+        bar.datetime = datetime.strptime(bar.date + ' ' + bar.time, '%Y%m%d %H:%M:%S')
+        bar.volume = d[6]
+        bar.openInterest = d[7]
+
+        flt = {'datetime': bar.datetime}
+        collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  
+        print bar.date, bar.time
+    
+    print u'插入完毕，耗时：%s' % (time()-start)
+    
+    
 if __name__ == '__main__':
     ## 简单的测试脚本可以写在这里
-    #from time import sleep
-    #e = HistoryDataEngine()
-    #sleep(1)
-    #e.downloadEquityDailyBar('000001')
+    from time import sleep
+    e = HistoryDataEngine()
+    sleep(1)
+    e.downloadEquityDailyBar('000001')
+    e.downloadEquitySymbol()
+    e.downloadFuturesSymbol()
+    e.downloadAllFuturesDailyBar()
+    e.downloadFuturesIntradayBar('m1705')
     
     # 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
-    loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
+    #loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
+	#e.downloadFuturesIntradayBar('au1606')
+    
+    # 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
+    #loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
+    # loadMinuteTxt('TXTMIN1/SQag06.TXT', MINUTE_DB_NAME, 'ag1706')
+    # loadMinuteTxt('TXTMIN5/SQag06.TXT', MINUTE5_DB_NAME, 'ag1706')
+    # loadDayTxt('TXTDAY/SQag06.TXT',DAILY_DB_NAME,'ag1706')
+    # loadMinuteTxt('TXTMIN1/SQauS06.TXT', MINUTE_DB_NAME, 'au1706')
+    # loadMinuteTxt('TXTMIN5/SQauS06.TXT', MINUTE5_DB_NAME, 'au1706')
+    # loadDayTxt('TXTDAY/SQauS06.TXT', DAILY_DB_NAME, 'au1706')
+    loadMinuteTxt('TXTMIN1/SQrb05.TXT', MINUTE_DB_NAME, 'rb1705')
+    loadMinuteTxt('TXTMIN5/SQrb05.TXT', MINUTE5_DB_NAME, 'rb1705')
+    loadDayTxt('TXTDAY/SQrb05.TXT', DAILY_DB_NAME, 'rb1705')

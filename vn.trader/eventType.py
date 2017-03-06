@@ -20,6 +20,7 @@ EVENT_TICK = 'eTick.'                   # TICK行情事件，可后接具体的v
 EVENT_TRADE = 'eTrade.'                 # 成交回报事件
 EVENT_ORDER = 'eOrder.'                 # 报单回报事件
 EVENT_POSITION = 'ePosition.'           # 持仓回报事件
+EVENT_POSITIONDETAIL = 'ePositionDetail'# 持仓明细回报事件
 EVENT_ACCOUNT = 'eAccount.'             # 账户回报事件
 EVENT_CONTRACT = 'eContract.'           # 合约基础信息回报事件
 EVENT_ERROR = 'eError.'                 # 错误回报事件
@@ -33,6 +34,11 @@ EVENT_DATARECORDER_LOG = 'eDataRecorderLog' # 行情记录日志更新事件
 
 # Wind接口相关
 EVENT_WIND_CONNECTREQ = 'eWindConnectReq'   # Wind接口请求连接事件
+
+# 历史数据相关
+EVENT_HIS_DATA = 'eHistoricalData'           # 下载历史数据处理函数
+EVENT_HIS_DATA_DOWNLOAD_FINISHED = 'eHistoricalDataDownloadFinished'           # 下载历史数据完成标志
+EVENT_STR_INIT_DATA = 'eStrInitData'                    # 策略初始化时所需的数据处理函数
 
 
 #----------------------------------------------------------------------

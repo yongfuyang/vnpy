@@ -84,3 +84,4 @@ CURRENCY_NONE = ''              # 空货币
 
 # 数据库
 LOG_DB_NAME = 'VnTrader_Log_Db'
+
