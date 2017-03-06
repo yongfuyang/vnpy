@@ -35,31 +35,18 @@ Release/
 *.klg
 *.lkc
 
-<<<<<<< HEAD
 # 不想同步的
 *.local
 *.temp
 *.vt
 *.dat
-=======
 vn.ctp/build/*
 vn.lts/build/*
 .idea
->>>>>>> 65aac25731772259bf2d4049e7adbe92750ea01d
 
 vn.trader/ctaAlgo/data/*
 vn.trader/build/*
 vn.trader/dist/*
-<<<<<<< HEAD
 vn.archive/vn.cs/vncshshlp/test/cslog/cserror.log
-vn.trader/ctpGateway/CTP_connect.json
-=======
 vn.trader/ctpGateway/CTP_connect.json
 读源码笔记.rar
-vn.trader/ctpGateway/CTP_connect.json
-读源码笔记/读源码笔记.xmind
-vn.trader/ctpGateway/CTP_connect.json
-vn.trader/ctpGateway/CTP_connect.json
-vn.archive/vn.cs/vncshshlp/test/cslog/cserror.log
-vn.trader/dataRecorder/DR_setting.json
->>>>>>> bf29663c8df13418c39c941df8decf7d5858f405
