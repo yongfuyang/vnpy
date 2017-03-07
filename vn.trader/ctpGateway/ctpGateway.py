@@ -89,6 +89,8 @@ class CtpGateway(VtGateway):
         self.tdConnected = False        # 交易API连接状态
         
         self.qryEnabled = False         # 是否要启动循环查询
+
+        self.requireAuthentication = False
         
     #----------------------------------------------------------------------
     def connect(self):
@@ -115,6 +117,14 @@ class CtpGateway(VtGateway):
             brokerID = str(setting['brokerID'])
             tdAddress = str(setting['tdAddress'])
             mdAddress = str(setting['mdAddress'])
+            if 'authCode' in setting: #如果json文件提供了验证码
+                authCode = str(setting['authCode'])
+                userProductInfo = str(setting['userProductInfo'])
+                self.tdApi.requireAuthentication = True
+            else:
+                authCode = None
+                userProductInfo = None
+
         except KeyError:
             log = VtLogData()
             log.gatewayName = self.gatewayName
@@ -124,7 +134,8 @@ class CtpGateway(VtGateway):
         
         # 创建行情和交易接口对象
         self.mdApi.connect(userID, password, brokerID, mdAddress)
-        self.tdApi.connect(userID, password, brokerID, tdAddress)
+        #self.tdApi.connect(userID, password, brokerID, tdAddress)
+        self.tdApi.connect(userID, password, brokerID, tdAddress,authCode, userProductInfo)
         self.mdConnected = True
         self.tdConnected = True
         # 初始化并启动查询
@@ -180,6 +191,7 @@ class CtpGateway(VtGateway):
         """初始化连续查询"""
         if self.qryEnabled:
             # 需要循环的查询函数列表
+            #self.qryFunctionList = [self.qryAccount, self.qryPosition]
             self.qryFunctionList = [self.qryAccount, self.qryPosition, self.qryPositionDetail]
             
             
@@ -460,6 +472,7 @@ class CtpTdApi(TdApi):
         
         self.connectionStatus = False       # 连接状态
         self.loginStatus = False            # 登录状态
+        self.authStatus = False
         
         self.userID = EMPTY_STRING          # 账号
         self.password = EMPTY_STRING        # 密码
@@ -474,6 +487,8 @@ class CtpTdApi(TdApi):
         self.posDetailBufferDict = {}       # 缓存持仓明细数据的字典
         self.symbolExchangeDict = {}        # 保存合约代码和交易所的印射关系
         self.symbolSizeDict = {}            # 保存合约代码和合约大小的印射关系
+
+        self.requireAuthentication = False
         
     #----------------------------------------------------------------------
     def onFrontConnected(self):
@@ -484,8 +499,10 @@ class CtpTdApi(TdApi):
         log.gatewayName = self.gatewayName
         log.logContent = u'交易服务器连接成功'
         self.gateway.onLog(log)
-    
-        self.login()
+        if self.requireAuthentication:
+            self.authenticate()
+        else:
+            self.login()
         
     #----------------------------------------------------------------------
     def onFrontDisconnected(self, n):
@@ -506,8 +523,13 @@ class CtpTdApi(TdApi):
         
     #----------------------------------------------------------------------
     def onRspAuthenticate(self, data, error, n, last):
-        """"""
-        pass
+        """验证客户端回报"""
+        if error['ErrorID'] == 0:
+            log = VtLogData()
+            log.gatewayName = self.gatewayName
+            log.logContent = u'交易服务器验证成功'
+            self.gateway.onLog(log)
+            self.login()
         
     #----------------------------------------------------------------------
     def onRspUserLogin(self, data, error, n, last):
@@ -808,6 +830,7 @@ class CtpTdApi(TdApi):
         
     #----------------------------------------------------------------------
     def onRspQryInvestorPositionDetail(self, data, error, n, last):
+        #pass
         """查询持仓明细回报"""
 
         posBuffer = PositionBuffer2(data, self.gatewayName)
@@ -1264,12 +1287,15 @@ class CtpTdApi(TdApi):
         pass
         
     #----------------------------------------------------------------------
-    def connect(self, userID, password, brokerID, address):
+    #def connect(self, userID, password, brokerID, address):
+    def connect(self, userID, password, brokerID, address, authCode, userProductInfo):
         """初始化连接"""
         self.userID = userID                # 账号
         self.password = password            # 密码
         self.brokerID = brokerID            # 经纪商代码
         self.address = address              # 服务器地址
+        self.authCode = authCode            #验证码
+        self.userProductInfo = userProductInfo  #产品信息
         
         # 如果尚未建立服务器连接，则进行连接
         if not self.connectionStatus:
@@ -1291,8 +1317,12 @@ class CtpTdApi(TdApi):
             
         # 若已经连接但尚未登录，则进行登录
         else:
-            if not self.loginStatus:
-                self.login()    
+            if self.requireAuthentication:
+                if self.authStatus:
+                    self.authenticate()
+            else:
+                if self.loginStatus:
+                    self.login()
     
     #----------------------------------------------------------------------
     def login(self):
@@ -1317,6 +1347,18 @@ class CtpTdApi(TdApi):
             #print(self.reqID)
             self.reqUserLogout(req,self.reqID)
         
+    #----------------------------------------------------------------------
+
+    def authenticate(self):
+        if self.userID and self.brokerID and self.authCode and self.userProductInfo:
+            req = {}
+            req['UserID'] = self.userID
+            req['BrokerID'] = self.brokerID
+            req['AuthCode'] = self.authCode
+            req['UserProductInfo'] = self.userProductInfo
+            self.reqID +=1
+            self.reqAuthenticate(req, self.reqID)
+
     #----------------------------------------------------------------------
     def qryAccount(self):
         """查询账户"""
@@ -1411,6 +1453,7 @@ class CtpTdApi(TdApi):
     #----------------------------------------------------------------------
     def close(self):
         """关闭"""
+
         #self.exit()
         self.logout()
 
