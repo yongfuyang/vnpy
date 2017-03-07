@@ -3,14 +3,6 @@
     "bar":
     [
         {
-            "vtSymbol": "AUD.USD.IDEALPRO",
-            "hisGatewayName":"IB"
-        },
-        {
-            "vtSymbol": "USD.JPY.IDEALPRO",
-            "hisGatewayName":"IB"
-        },
-        {
             "vtSymbol": "EUR.USD.IDEALPRO",
             "hisGatewayName":"IB"
         }

@@ -22,6 +22,7 @@ from PyQt4 import QtGui, QtCore
 from vnib import *
 from vtGateway import *
 from vtFunction import *
+from ctaBase import *
 
 
 # 以下为一些VT类型和CTP类型的映射字典
@@ -121,6 +122,8 @@ class IbGateway(VtGateway):
         self.port = EMPTY_INT           # 连接端口
         self.clientId = EMPTY_INT       # 用户编号
         self.accountCode = EMPTY_STRING # 账户编号
+        
+        self.autoConnect =True
         
         self.tickerId = 0               # 订阅行情时的代码编号    
         self.tickDict = {}              # tick快照字典，key为tickerId，value为VtTickData对象
@@ -306,6 +309,14 @@ class IbGateway(VtGateway):
         newcontract.m_expiry = contractReq.expiry
         newcontract.m_strike = contractReq.strikePrice
         newcontract.m_right = optionTypeMap.get(contractReq.optionType, '')
+        
+        newcontract.localSymbol = newcontract.m_localSymbol
+        newcontract.exchange = newcontract.m_exchange
+        newcontract.secType = newcontract.m_secType
+        newcontract.currency = newcontract.m_currency
+        newcontract.expiry = newcontract.m_expiry
+        newcontract.strike = newcontract.m_strike
+        newcontract.right = newcontract.m_right        
     
         # 更新tickerId， 每次请求都不同
         if tickerId:
@@ -338,9 +349,15 @@ class IbGateway(VtGateway):
         formatDate = 2  # 返回的K线时间为 timeStamp, 如果日线则返回EST时间
     
         # 发出历史数据请求
-        self.api.reqHistoricalData(self.tickerId, newcontract, endDateTimeStr, durationStr, barSizeStr, whatToShow, useRTH, formatDate)
+        self.api.reqHistoricalData(self.tickerId, newcontract, endDateTimeStr, durationStr, barSizeStr, whatToShow, useRTH, formatDate, TagValueList())
         
 
+    def onHistoricalData(self, bar):
+        pass
+    
+    def onHistoricalDataDownloadFinished(self, reqId):
+        pass
+    
 ########################################################################
 class IbWrapper(IbApi):
     """IB回调接口的实现"""
@@ -400,13 +417,15 @@ class IbWrapper(IbApi):
         err.errorMsg = errorString.decode('GBK')
         self.gateway.onError(err)
         
+        '''
         if  errorCode==504 and   self.gateway.autoConnect == True:
             log = VtLogData()
             log.gatewayName = self.gatewayName
             log.logContent = (u'Not connected, 10秒后重新登录')
             self.gateway.onLog(log)
-            thread = Thread(target=self.gateway.connect, kwargs=({'delayTime': 10}))
-            thread.start()        
+            thread = Thread(target=self.gateway.connect))
+            thread.start()       
+        '''
         
     #----------------------------------------------------------------------
     def accountSummary(self, reqId, account, tag, value, curency):

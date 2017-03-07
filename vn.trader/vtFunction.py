@@ -7,7 +7,7 @@
 import os
 import decimal
 import json
-from datetime import datetime
+from datetime import *
 
 MAX_NUMBER = 10000000000000
 MAX_DECIMAL = 4
