@@ -202,16 +202,16 @@ class HistoryDataEngine(object):
             # 创建datetime索引
             self.dbClient[MINUTE_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
                                                                       unique=True)                
-
-            for d in data:
+	    _exchange = DATAYES_TO_VT_EXCHANGE.get(data[0].get('exchangeCD', ''), '')
+            for d in data[0].get('barBodys',[]):
                 bar = CtaBarData()
                 bar.vtSymbol = symbol
                 bar.symbol = symbol
                 try:
-                    bar.exchange = DATAYES_TO_VT_EXCHANGE.get(d.get('exchangeCD', ''), '')
+                    bar.exchange = _exchange
                     bar.open = d.get('openPrice', 0)
-                    bar.high = d.get('highestPrice', 0)
-                    bar.low = d.get('lowestPrice', 0)
+                    bar.high = d.get('highPrice', 0)
+                    bar.low = d.get('lowPrice', 0)
                     bar.close = d.get('closePrice', 0)
                     bar.date = today
                     bar.time = d.get('barTime', '')
@@ -222,6 +222,7 @@ class HistoryDataEngine(object):
                     print d
                 
                 flt = {'datetime': bar.datetime}
+		print ' '.join(['%s:%s' % item for item in bar.__dict__.items()])
                 self.dbClient[MINUTE_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
             
             print u'%s下载完成' %symbol
@@ -499,6 +500,6 @@ if __name__ == '__main__':
     # loadMinuteTxt('TXTMIN1/SQauS06.TXT', MINUTE_DB_NAME, 'au1706')
     # loadMinuteTxt('TXTMIN5/SQauS06.TXT', MINUTE5_DB_NAME, 'au1706')
     # loadDayTxt('TXTDAY/SQauS06.TXT', DAILY_DB_NAME, 'au1706')
-    loadMinuteTxt('TXTMIN1/SQrb05.TXT', MINUTE_DB_NAME, 'rb1705')
-    loadMinuteTxt('TXTMIN5/SQrb05.TXT', MINUTE5_DB_NAME, 'rb1705')
-    loadDayTxt('TXTDAY/SQrb05.TXT', DAILY_DB_NAME, 'rb1705')
+    # loadMinuteTxt('TXTMIN1/SQrb05.TXT', MINUTE_DB_NAME, 'rb1705')
+    # loadMinuteTxt('TXTMIN5/SQrb05.TXT', MINUTE5_DB_NAME, 'rb1705')
+    # loadDayTxt('TXTDAY/SQrb05.TXT', DAILY_DB_NAME, 'rb1705')
