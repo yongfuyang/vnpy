@@ -71,7 +71,7 @@ class HistoryDataEngine(object):
 			tradeDate = self.lastTradeDate()
 
 		self.dbClient[SETTING_DB_NAME]['FuturesSymbol'].ensure_index([('symbol', pymongo.ASCENDING)], 
-		                                                             unique=True)
+				                                                     unique=True)
 
 
 		path = 'api/market/getMktMFutd.json'
@@ -89,7 +89,7 @@ class HistoryDataEngine(object):
 				flt = {'symbol': d['ticker']}
 
 				self.dbClient[SETTING_DB_NAME]['FuturesSymbol'].update_one(flt, {'$set':symbolDict}, 
-				                                                           upsert=True)
+								                                           upsert=True)
 			print u'期货合约代码下载完成'
 		else:
 			print u'期货合约代码下载失败'
@@ -134,7 +134,7 @@ class HistoryDataEngine(object):
 		if data:
 			# 创建datetime索引
 			self.dbClient[DAILY_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
-			                                                  unique=True)                
+						                                      unique=True)                
 
 			for d in data:
 				bar = CtaBarData()
@@ -202,7 +202,7 @@ class HistoryDataEngine(object):
 
 			# 创建datetime索引
 			self.dbClient[MINUTE_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
-			                                                   unique=True)                
+						                                       unique=True)                
 			_exchange = DATAYES_TO_VT_EXCHANGE.get(data[0].get('exchangeCD', ''), '')
 			for d in data[0].get('barBodys',[]):
 				bar = CtaBarData()
@@ -237,7 +237,7 @@ class HistoryDataEngine(object):
 			tradeDate = self.lastTradeDate()
 
 		self.dbClient[SETTING_DB_NAME]['EquitySymbol'].ensure_index([('symbol', pymongo.ASCENDING)], 
-		                                                            unique=True)
+				                                                    unique=True)
 
 
 		path = 'api/market/getMktEqud.json'
@@ -254,7 +254,7 @@ class HistoryDataEngine(object):
 				flt = {'symbol': d['ticker']}
 
 				self.dbClient[SETTING_DB_NAME]['EquitySymbol'].update_one(flt, {'$set':symbolDict}, 
-				                                                          upsert=True)
+								                                          upsert=True)
 			print u'股票代码下载完成'
 		else:
 			print u'股票代码下载失败'
@@ -287,7 +287,7 @@ class HistoryDataEngine(object):
 		if data:
 			# 创建datetime索引
 			self.dbClient[DAILY_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
-			                                                  unique=True)                
+						                                      unique=True)                
 
 			for d in data:
 				bar = CtaBarData()
@@ -316,53 +316,53 @@ class HistoryDataEngine(object):
 
 #----------------------------------------------------------------------
 def downloadEquityDailyBarts(self, symbol):
-        """
-        下载股票的日行情，symbol是股票代码
-        """
-        print u'开始下载%s日行情' %symbol
-        
-        # 查询数据库中已有数据的最后日期
-        cl = self.dbClient[DAILY_DB_NAME][symbol]
-        cx = cl.find(sort=[('datetime', pymongo.DESCENDING)])
-        if cx.count():
-            last = cx[0]
-        else:
-            last = ''
-        # 开始下载数据
-        import tushare as ts
-        
-        if last:
-            start = last['date'][:4]+'-'+last['date'][4:6]+'-'+last['date'][6:]
-            
-        data = ts.get_k_data(symbol,start)
-        
-        if not data.empty:
-            # 创建datetime索引
-            self.dbClient[DAILY_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
-                                                                unique=True)                
-            
-            for index, d in data.iterrows():
-                bar = CtaBarData()
-                bar.vtSymbol = symbol
-                bar.symbol = symbol
-                try:
-                    bar.open = d.get('open')
-                    bar.high = d.get('high')
-                    bar.low = d.get('low')
-                    bar.close = d.get('close')
-                    bar.date = d.get('date').replace('-', '')
-                    bar.time = ''
-                    bar.datetime = datetime.strptime(bar.date, '%Y%m%d')
-                    bar.volume = d.get('volume')
-                except KeyError:
-                    print d
-                
-                flt = {'datetime': bar.datetime}
-                self.dbClient[DAILY_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
-            
-            print u'%s下载完成' %symbol
-        else:
-            print u'找不到合约%s' %symbol
+	"""
+	下载股票的日行情，symbol是股票代码
+	"""
+	print u'开始下载%s日行情' %symbol
+
+	# 查询数据库中已有数据的最后日期
+	cl = self.dbClient[DAILY_DB_NAME][symbol]
+	cx = cl.find(sort=[('datetime', pymongo.DESCENDING)])
+	if cx.count():
+		last = cx[0]
+	else:
+		last = ''
+	# 开始下载数据
+	import tushare as ts
+
+	if last:
+		start = last['date'][:4]+'-'+last['date'][4:6]+'-'+last['date'][6:]
+
+	data = ts.get_k_data(symbol,start)
+
+	if not data.empty:
+		# 创建datetime索引
+		self.dbClient[DAILY_DB_NAME][symbol].ensure_index([('datetime', pymongo.ASCENDING)], 
+				                                          unique=True)                
+
+		for index, d in data.iterrows():
+			bar = CtaBarData()
+			bar.vtSymbol = symbol
+			bar.symbol = symbol
+			try:
+				bar.open = d.get('open')
+				bar.high = d.get('high')
+				bar.low = d.get('low')
+				bar.close = d.get('close')
+				bar.date = d.get('date').replace('-', '')
+				bar.time = ''
+				bar.datetime = datetime.strptime(bar.date, '%Y%m%d')
+				bar.volume = d.get('volume')
+			except KeyError:
+				print d
+
+			flt = {'datetime': bar.datetime}
+			self.dbClient[DAILY_DB_NAME][symbol].update_one(flt, {'$set':bar.__dict__}, upsert=True)            
+
+		print u'%s下载完成' %symbol
+	else:
+		print u'找不到合约%s' %symbol
 #----------------------------------------------------------------------
 
 def loadMcCsv(fileName, dbName, symbol):
@@ -445,6 +445,56 @@ def loadMinuteTxt(fileName, dbName, symbol):
 
 	print u'插入完毕，耗时：%s' % (time()-start)
 
+def loadTBMinCsv(fileName, dbName, symbol):
+	"""将TB导出的csv格式的历史分钟数据插入到Mongo数据库中"""
+	import csv
+
+	start = time()
+	print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+	# 锁定集合，并创建索引
+	host, port, logging = loadMongoSetting()
+
+	client = pymongo.MongoClient(host, port)    
+	collection = client[dbName][symbol]
+	collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+
+	# 读取数据和插入到数据库
+	reader = csv.reader(file(fileName, 'r'))
+	newfile = open(fileName+'.out','w')
+	newfile.writelines('Date,Time,Open,High,Low,Close,Vol,Val\n')	
+	for d in reader:
+		bar = CtaBarData()
+		bar.vtSymbol = symbol
+		bar.symbol = symbol
+		bar.open = float(d[2])
+		bar.high = float(d[3])
+		bar.low = float(d[4])
+		bar.close = float(d[5])
+		
+		n1=int(float(d[1])*10000)
+		h1=int(n1/100)
+		m1=int(n1%100)			
+		daytime_str="%s %02d:%02d:00" %(d[0],h1,m1)
+		
+		daytime=datetime.strptime(daytime_str, '%Y%m%d %H:%M:%S')
+		daytime=daytime+timedelta(minutes=1)				
+		bar.date = daytime.strftime('%Y%m%d')		
+		bar.time = daytime.strftime('%H:%M:%S')		
+		bar.datetime = daytime
+		bar.volume = d[6]
+		bar.openInterest = d[7]
+
+		flt = {'datetime': bar.datetime}
+		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  		
+		
+		newfile.writelines(','.join([bar.date,bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
+		
+	newfile.close()		
+
+	print u'插入完毕，耗时：%s' % (time()-start)
+
+		
 
 def loadDayTxt(fileName, dbName, symbol):
 	"""将Multicharts导出的csv格式的历史数据插入到Mongo数据库中"""
@@ -530,6 +580,7 @@ def loadTdxCsv(fileName, dbName, symbol):
 if __name__ == '__main__':
 	## 简单的测试脚本可以写在这里
 	from time import sleep
+	'''
 	e = HistoryDataEngine()
 	sleep(1)
 	e.downloadEquityDailyBar('000001')
@@ -537,6 +588,9 @@ if __name__ == '__main__':
 	e.downloadFuturesSymbol()
 	e.downloadAllFuturesDailyBar()
 	e.downloadFuturesIntradayBar('m1705')
+	'''
+	
+	loadTBMinCsv('D:/work/vnpy/vn.trader/ctaAlgo/historicalData/rb1705_1Min.csv', MINUTE_DB_NAME, 'rb1705')
 
 	# 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
 	#loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')

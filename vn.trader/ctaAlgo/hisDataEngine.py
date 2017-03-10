@@ -101,8 +101,8 @@ class HisDataEngine(object):
 
 
         # 补全json中设置合约的历史数据
-        thread = Thread(target=self.downLoadAllDataManager,   kwargs=({'days': 500, }))         #补全最近500天的。只要补一次就行，平时策略启动就自动补5天
-        thread.start()
+        #thread = Thread(target=self.downLoadAllDataManager,   kwargs=({'days': 500, }))         #补全最近500天的。只要补一次就行，平时策略启动就自动补5天
+        #thread.start()
         
     #----------------------------------------------------------------------
     def loadSetting(self):
@@ -306,7 +306,7 @@ class HisDataEngine(object):
         # 处理 Timer事件
         # 每秒推送来一次
         # 每隔 60秒 检查一次，是否要发出历史数据请求
-        return
+        #return
 
         self.sbTimerCount += 1                  # 定时器是 一秒 一次
 
@@ -379,7 +379,7 @@ class HisDataEngine(object):
                     pass
 
         self.pre_minute = now.minute
-        return
+        #return
         # 交易时间
         if not isTradeTime():  # 非交易时间就返回
             self.minute_timer_counter = 0  # 休盘时间清零
