@@ -59,17 +59,17 @@ class DrEngine(object):
 		# 载入设置，订阅行情
 		self.loadSetting()
 
-    def saveSetting(self, setting):
-	    """保存设置"""
-	    setting['working'] = self.working
-	    with open(self.settingFileName, 'w') as f:
-		    try:
-			    str = json.dumps(setting, indent=2)
-			    f.write(str)
-		    except:
-			    pass
-	    return True
-        
+	def saveSetting(self, setting):
+		"""保存设置"""
+		setting['working'] = self.working
+		with open(self.settingFileName, 'w') as f:
+			try:
+				str = json.dumps(setting, indent=2)
+				f.write(str)
+			except:
+				pass
+		return True
+
 	#----------------------------------------------------------------------
 	def loadSetting(self):
 		"""载入设置"""
@@ -77,8 +77,8 @@ class DrEngine(object):
 			drSetting = json.load(f)
 
 			# 如果working设为False则不启动行情记录功能
-            self.working = drSetting['working']
-            if not self.working:
+			self.working = drSetting['working']
+			if not self.working:
 				return
 
 			if 'tick' in drSetting:
@@ -181,7 +181,7 @@ class DrEngine(object):
 
 						# 发出日志
 						self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s'
-						                %(drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
+										%(drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
 
 					# 更新分钟线数据
 					if vtSymbol in self.barDict:
@@ -198,8 +198,8 @@ class DrEngine(object):
 									self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
 								self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-								                %(bar.vtSymbol, bar.time, bar.open, bar.high,
-								                  bar.low, bar.close))
+												%(bar.vtSymbol, bar.time, bar.open, bar.high,
+												  bar.low, bar.close))
 
 							bar.vtSymbol = drTick.vtSymbol
 							bar.symbol = drTick.symbol
@@ -234,8 +234,8 @@ class DrEngine(object):
 
 						# 发出日志
 						self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s'
-						                % (
-						                        drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
+										% (
+											drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
 
 					# 更新分钟线数据
 					if vtSymbol in self.barDict:
@@ -252,8 +252,8 @@ class DrEngine(object):
 									self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
 								self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-								                % (bar.vtSymbol, bar.time, bar.open, bar.high,
-								                   bar.low, bar.close))
+												% (bar.vtSymbol, bar.time, bar.open, bar.high,
+												   bar.low, bar.close))
 
 							bar.vtSymbol = drTick.vtSymbol
 							bar.symbol = drTick.symbol
@@ -288,8 +288,8 @@ class DrEngine(object):
 
 						# 发出日志
 						self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s'
-						                % (
-						                        drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
+										% (
+											drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
 
 					# 更新分钟线数据
 					if vtSymbol in self.barDict:
@@ -306,8 +306,8 @@ class DrEngine(object):
 									self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
 								self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-								                % (bar.vtSymbol, bar.time, bar.open, bar.high,
-								                   bar.low, bar.close))
+												% (bar.vtSymbol, bar.time, bar.open, bar.high,
+												   bar.low, bar.close))
 
 							bar.vtSymbol = drTick.vtSymbol
 							bar.symbol = drTick.symbol
@@ -342,8 +342,8 @@ class DrEngine(object):
 
 						# 发出日志
 						self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s'
-						                % (
-						                        drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
+										% (
+											drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1, drTick.askPrice1))
 
 					# 更新分钟线数据
 					if vtSymbol in self.barDict:
@@ -360,8 +360,8 @@ class DrEngine(object):
 									self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
 								self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-								                % (bar.vtSymbol, bar.time, bar.open, bar.high,
-								                   bar.low, bar.close))
+												% (bar.vtSymbol, bar.time, bar.open, bar.high,
+												   bar.low, bar.close))
 
 							bar.vtSymbol = drTick.vtSymbol
 							bar.symbol = drTick.symbol
@@ -401,9 +401,9 @@ class DrEngine(object):
 
 					# 发出日志
 					self.writeDrLog(u'记录Tick数据%s，时间:%s, last:%s, bid:%s, ask:%s'
-					                % (
-					                        drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1,
-					                        drTick.askPrice1))
+									% (
+										drTick.vtSymbol, drTick.time, drTick.lastPrice, drTick.bidPrice1,
+										drTick.askPrice1))
 
 				# 更新分钟线数据
 				if vtSymbol in self.barDict:
@@ -420,8 +420,8 @@ class DrEngine(object):
 								self.insertData(MINUTE_DB_NAME, activeSymbol, newBar)
 
 							self.writeDrLog(u'记录分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-							                % (bar.vtSymbol, bar.time, bar.open, bar.high,
-							                   bar.low, bar.close))
+											% (bar.vtSymbol, bar.time, bar.open, bar.high,
+											   bar.low, bar.close))
 
 						bar.vtSymbol = drTick.vtSymbol
 						bar.symbol = drTick.symbol
@@ -521,8 +521,8 @@ def procecssBar(self,bar):
 				self.insertData(MINUTE5_DB_NAME, activeSymbol, newBar)
 
 			self.writeDrLog(u'记录5分钟线数据%s，时间:%s, O:%s, H:%s, L:%s, C:%s'
-			                %(newBar.vtSymbol, newBar.time, newBar.open, newBar.high,
-			                  newBar.low, newBar.close))
+						    %(newBar.vtSymbol, newBar.time, newBar.open, newBar.high,
+						      newBar.low, newBar.close))
 
 #-----------------------------------------------------------------------
 	def tickInTime(self,d):
