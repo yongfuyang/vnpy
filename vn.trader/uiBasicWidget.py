@@ -1198,7 +1198,7 @@ class ContractMonitor(BasicMonitor):
                 cellType = self.headerDict[header]['cellType']
                 content = None
                 if (hasattr(contract, header)):
-                content = safeUnicode(contract.__getattribute__(header))
+                    content = safeUnicode(contract.__getattribute__(header))
                 cell = cellType(content)
 
                 if self.font:
