@@ -331,7 +331,7 @@ class DrEngine(object):
 		for instrument in ninetohalftwo:
 			if instrument in vtSymbol:
 				time_f = datetime.now()
-				if (time_f >= datetime.today().replace(hour=9, minute=0, second=0) and time_f <= datetime.today().replace(hour=15, minute=0, second=0)) or (time_f >= datetime.today().replace(hour=21, minute=0, second=0) and time_f <= datetime.today().replace(hour=24, minute=0, second=0)) or (time_f<=datetime.today().replace(hour=2, minute=30, second=0)):
+				if (time_f >= datetime.today().replace(hour=9, minute=0, second=0) and time_f <= datetime.today().replace(hour=15, minute=0, second=0)) or (time_f >= datetime.today().replace(hour=21, minute=0, second=0) and time_f <= datetime.today().replace(hour=23, minute=59, second=59)) or (time_f<=datetime.today().replace(hour=2, minute=30, second=0)):
 					# 更新Tick数据
 					if vtSymbol in self.tickDict:
 						self.insertData(TICK_DB_NAME, vtSymbol, drTick)

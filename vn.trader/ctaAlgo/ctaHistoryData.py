@@ -493,8 +493,80 @@ def loadTBMinCsv(fileName, dbName, symbol):
 	newfile.close()		
 
 	print u'插入完毕，耗时：%s' % (time()-start)
+	
+def loadTBMinCsvByFileName(fileName,dataDir,backupDir):
+	"""将TB导出的csv格式的历史分钟数据插入到Mongo数据库中"""
+	import csv
+	import shutil
+	import traceback 
 
+	start = time()
+	symbol=fileName.split('_')[0]
+	dbName=MINUTE_DB_NAME
+	
+	print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+	# 锁定集合，并创建索引
+	host, port, logging = loadMongoSetting()
+
+	client = pymongo.MongoClient(host, port)    
+	collection = client[dbName][symbol]
+	collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+
+	# 读取数据和插入到数据库
+	f=file(dataDir+'/'+fileName, 'r')
+	reader = csv.reader(f)
+	newfile = open(backupDir+'/'+fileName+'.out','w')
+	newfile.writelines('Date,Time,Open,High,Low,Close,Vol,Val\n')	
+	for d in reader:
+		bar = CtaBarData()
+		bar.vtSymbol = symbol
+		bar.symbol = symbol
+		bar.open = float(d[2])
+		bar.high = float(d[3])
+		bar.low = float(d[4])
+		bar.close = float(d[5])
 		
+		n1=int(float(d[1])*10000)
+		h1=int(n1/100)
+		m1=int(n1%100)			
+		daytime_str="%s %02d:%02d:00" %(d[0],h1,m1)
+		
+		daytime=datetime.strptime(daytime_str, '%Y%m%d %H:%M:%S')
+		daytime=daytime+timedelta(minutes=1)				
+		bar.date = daytime.strftime('%Y%m%d')		
+		bar.time = daytime.strftime('%H:%M:%S')		
+		bar.datetime = daytime
+		bar.volume = d[6]
+		bar.openInterest = d[7]
+
+		flt = {'datetime': bar.datetime}
+		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  		
+		
+		newfile.writelines(','.join([bar.date,bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
+	
+	f.close()
+	newfile.close()	
+	try:
+		shutil.move(dataDir+'/'+fileName, backupDir)		
+	except:
+		traceback.print_exc()
+		import os
+		os.remove(dataDir+'/'+fileName)
+
+	print u'插入完毕，耗时：%s' % (time()-start)	
+
+def autoLoadTBCsv2DB():
+	import os
+	path = os.path.abspath(os.path.dirname(__file__))
+	tbDataDir = os.path.join(path, 'historicalData', 'TB') 	
+	tbDataBackupDir = os.path.join(path, 'historicalData', 'TBbackup')
+	
+	for f in os.listdir(tbDataDir):
+		if(os.path.isfile(tbDataDir + '/' + f)):
+			loadTBMinCsvByFileName(f,tbDataDir,tbDataBackupDir)
+			
+	
 
 def loadDayTxt(fileName, dbName, symbol):
 	"""将Multicharts导出的csv格式的历史数据插入到Mongo数据库中"""
@@ -590,8 +662,9 @@ if __name__ == '__main__':
 	e.downloadFuturesIntradayBar('m1705')
 	'''
 	
-	loadTBMinCsv('D:/work/vnpy/vn.trader/ctaAlgo/historicalData/rb1705_1Min.csv', MINUTE_DB_NAME, 'rb1705')
-
+	#loadTBMinCsv('D:/work/vnpy/vn.trader/ctaAlgo/historicalData/rb1705_1Min.csv', MINUTE_DB_NAME, 'rb1705')
+	autoLoadTBCsv2DB()
+	
 	# 这里将项目中包含的股指日内分钟线csv导入MongoDB，作者电脑耗时大约3分钟
 	#loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
 		#e.downloadFuturesIntradayBar('au1606')

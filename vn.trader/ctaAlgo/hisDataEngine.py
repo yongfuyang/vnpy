@@ -33,6 +33,7 @@ from vtFunction import *
 
 #from myFunction import *            # 常见函数
 from hisBase import *               # K 线类，属性
+from ctaHistoryData import *
 #from myConstant import *            # 常量
 
 from threading import Thread        # 请求历史数据要发出线程才不会卡死。
@@ -318,6 +319,8 @@ class HisDataEngine(object):
         # 时间到了就自动下载历史数据
         # self.autoDownloadHisData()        # 每小时下载一次
         # self.downLoadAllDataManager       # 自动下载全部
+        
+        autoLoadTBCsv2DB()
 
     # ----------------------------------------------------------------------
     def onTimeDownloadHisData(self):

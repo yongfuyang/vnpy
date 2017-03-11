@@ -85,6 +85,7 @@ class NumCell(QtGui.QTableWidgetItem):
             self.setContent(text)
 
     #----------------------------------------------------------------------
+    '''    
     def __lt__(self, other):
         if (isinstance(other, QtGui.QTableWidgetItem)):
             my_value, my_ok = self.data(Qt.DisplayRole).toInt()
@@ -94,7 +95,7 @@ class NumCell(QtGui.QTableWidgetItem):
                 return my_value < other_value
 
         return super(NumCell, self).__lt__(other)
-
+    '''
     #----------------------------------------------------------------------
     def setContent(self, text):
         """设置内容"""

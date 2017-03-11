@@ -55,36 +55,50 @@ BARSIZE_DICT = {
 }
 
 
+BARSIZE_TICK=0
+BARSIZE_S1=1
+BARSIZE_S5=2
+BARSIZE_S15=3
+BARSIZE_S30=4
+BARSIZE_M1=5
+BARSIZE_M2=6
+BARSIZE_M3=7
+BARSIZE_M5=8
+BARSIZE_M15=9
+BARSIZE_M30=10
+BARSIZE_H1=11
+BARSIZE_D=12
+
 # 使用的缓存表
 # 临时变量使用 barSize
 BARSIZE_DFNAME_DICT = {}
 BARSIZE_DFNAME_DICT = {
-    0 : 'df_tick',
-    1 : 'df_S_Bar',
-    2 : 'df_S5_Bar',
-    3 : 'df_S15_Bar',
-    4 : 'df_S30_Bar',
-    5 : 'df_M1_Bar',
-    6 : 'df_M2_Bar',
-    7 : 'df_M3_Bar',
-    8 : 'df_M5_Bar',
-    9 : 'df_M15_Bar',
-    10 : 'df_M30_Bar',
-    11 : 'df_H_Bar',
-    12 : 'df_D_Bar'
+    BARSIZE_TICK : 'df_tick',
+    BARSIZE_S1 : 'df_S_Bar',
+    BARSIZE_S5 : 'df_S5_Bar',
+    BARSIZE_S15 : 'df_S15_Bar',
+    BARSIZE_S30 : 'df_S30_Bar',
+    BARSIZE_M1 : 'df_M1_Bar',
+    BARSIZE_M2 : 'df_M2_Bar',
+    BARSIZE_M3 : 'df_M3_Bar',
+    BARSIZE_M5 : 'df_M5_Bar',
+    BARSIZE_M15 : 'df_M15_Bar',
+    BARSIZE_M30 : 'df_M30_Bar',
+    BARSIZE_H1 : 'df_H_Bar',
+    BARSIZE_D : 'df_D_Bar'
 }
 
 # BARSIZE 跟本地数据库名的对应关系
 # 库名要同 ctaBase 一致
 BARSIZE_DBNAME_DICT = {}
 BARSIZE_DBNAME_DICT = {
-    0:'VnTrader_Tick_Db',
-    5:'VnTrader_1Min_Db',
-    8:'VnTrader_5Min_Db',
-    9: 'VnTrader_15Min_Db',
-    10: 'VnTrader_30Min_Db',
-    11: 'VnTrader_Hour_Db',
-    12: 'VnTrader_Daily_Db'
+    BARSIZE_TICK:'VnTrader_Tick_Db',
+    BARSIZE_M1:'VnTrader_1Min_Db',
+    BARSIZE_M5:'VnTrader_5Min_Db',
+    BARSIZE_M15: 'VnTrader_15Min_Db',
+    BARSIZE_M30: 'VnTrader_30Min_Db',
+    BARSIZE_H1: 'VnTrader_Hour_Db',
+    BARSIZE_D: 'VnTrader_Daily_Db'
 }
 
 
@@ -137,6 +151,7 @@ class CtaBarData(object):
         self.vtSymbol = EMPTY_STRING        # vt系统代码
         self.symbol = EMPTY_STRING          # 代码
         self.exchange = EMPTY_STRING        # 交易所
+        self.barsize = EMPTY_INT             # K线周期   自己增加
     
         self.open = EMPTY_FLOAT             # OHLC
         self.high = EMPTY_FLOAT
