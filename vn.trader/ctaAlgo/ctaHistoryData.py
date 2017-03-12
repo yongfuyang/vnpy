@@ -494,11 +494,15 @@ def loadTBMinCsv(fileName, dbName, symbol):
 
 	print u'插入完毕，耗时：%s' % (time()-start)
 	
-def loadTBMinCsvByFileName(fileName,dataDir,backupDir):
+	
+# TB导出的csv文件，K线是为开始时间，例如5分k先，9:30分，代表9:30-9:35的时间段。国内博易大师、同花顺的K先，9:35代表9:30-9:35，本例是把TB导成博易大师格式的k线
+def loadTBMinCsvByFileNameT(fileName, dataDir, backupDir, to5m=True, to15m=True, to30m=True, toH1=True, toD1=True):
 	"""将TB导出的csv格式的历史分钟数据插入到Mongo数据库中"""
 	import csv
 	import shutil
 	import traceback 
+	import pandas as pd
+	import numpy as np
 
 	start = time()
 	symbol=fileName.split('_')[0]
@@ -516,8 +520,8 @@ def loadTBMinCsvByFileName(fileName,dataDir,backupDir):
 	# 读取数据和插入到数据库
 	f=file(dataDir+'/'+fileName, 'r')
 	reader = csv.reader(f)
-	newfile = open(backupDir+'/'+fileName+'.out','w')
-	newfile.writelines('Date,Time,Open,High,Low,Close,Vol,Val\n')	
+	newfile = open(backupDir+'/'+fileName+'_1M.csv','w')
+	newfile.writelines('DateTime,Open,High,Low,Close,Vol,Val\n')	
 	for d in reader:
 		bar = CtaBarData()
 		bar.vtSymbol = symbol
@@ -533,7 +537,7 @@ def loadTBMinCsvByFileName(fileName,dataDir,backupDir):
 		daytime_str="%s %02d:%02d:00" %(d[0],h1,m1)
 		
 		daytime=datetime.strptime(daytime_str, '%Y%m%d %H:%M:%S')
-		daytime=daytime+timedelta(minutes=1)				
+		daytime=daytime+timedelta(minutes=1)				#分钟加1
 		bar.date = daytime.strftime('%Y%m%d')		
 		bar.time = daytime.strftime('%H:%M:%S')		
 		bar.datetime = daytime
@@ -543,10 +547,100 @@ def loadTBMinCsvByFileName(fileName,dataDir,backupDir):
 		flt = {'datetime': bar.datetime}
 		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  		
 		
-		newfile.writelines(','.join([bar.date,bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
+		newfile.writelines(','.join([bar.date+' '+bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
+	
+	f.close()
+	newfile.close()			
+	
+	try:
+		shutil.move(dataDir+'/'+fileName, backupDir)		
+	except:
+		traceback.print_exc()
+		import os
+		os.remove(dataDir+'/'+fileName)
+
+	print u'插入完毕，耗时：%s' % (time()-start)	
+	
+
+# TB导出的csv文件，K线是为开始时间，例如5分k先，9:30分，代表9:30-9:35的时间段。国内博易大师、同花顺的K先，9:35代表9:30-9:35，本例是保留TB本来的格式	
+def loadTBMinCsvByFileName(fileName, dataDir, backupDir, to5m=True, to15m=True, to30m=True, toH1=True, toD1=True):
+	"""将TB导出的csv格式的历史分钟数据插入到Mongo数据库中"""
+	import csv
+	import shutil
+	import traceback 
+	import pandas as pd
+	import numpy as np
+
+	start = time()
+	symbol=fileName.split('_')[0]
+	dbName=MINUTE_DB_NAME
+	
+	print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+	# 锁定集合，并创建索引
+	host, port, logging = loadMongoSetting()
+
+	client = pymongo.MongoClient(host, port)    
+	collection = client[dbName][symbol]
+	collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+
+	# 读取数据和插入到数据库
+	f=file(dataDir+'/'+fileName, 'r')
+	reader = csv.reader(f)
+	newfile = open(backupDir+'/'+fileName+'_1M.csv','w')
+	newfile.writelines('DateTime,Open,High,Low,Close,Vol,Val\n')	
+	for d in reader:
+		bar = CtaBarData()
+		bar.vtSymbol = symbol
+		bar.symbol = symbol
+		bar.open = float(d[2])
+		bar.high = float(d[3])
+		bar.low = float(d[4])
+		bar.close = float(d[5])
+		bar.barsize = 1
+		
+		n1=int(float(d[1])*10000)
+		h1=int(n1/100)
+		m1=int(n1%100)			
+		daytime_str="%s %02d:%02d:00" %(d[0],h1,m1)
+		
+		daytime=datetime.strptime(daytime_str, '%Y%m%d %H:%M:%S')
+		#daytime=daytime+timedelta(minutes=1)				
+		bar.date = daytime.strftime('%Y%m%d')		
+		bar.time = daytime.strftime('%H:%M:%S')		
+		bar.datetime = daytime
+		bar.volume = d[6]
+		bar.openInterest = d[7]
+
+		flt = {'datetime': bar.datetime}
+		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  		
+		
+		newfile.writelines(','.join([bar.date+' '+bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
 	
 	f.close()
 	newfile.close()	
+	
+	#------------生成5M csv并插入数据库------------------
+	ohlc_dict = {                                                                                                             
+	'Open':'first',                                                                                                    
+	'High':'max',                                                                                                       
+	'Low':'min',                                                                                                        
+	'Close': 'last',                                                                                                    
+	'Vol': 'sum'
+	}	
+	df=pd.read_csv(backupDir+'/'+fileName+'_1M.csv', index_col=0, header=0,sep=',')
+	df.index=pd.to_datetime(df.index)	
+	if to5m:		
+		df_out=df.resample('5T', how=ohlc_dict, closed='left', label='left')
+		df_out=df_out.dropna(how='any')
+		df_out.to_csv(backupDir+'/'+fileName+'_5M.csv')
+		
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)
+		
+		
+	
 	try:
 		shutil.move(dataDir+'/'+fileName, backupDir)		
 	except:
