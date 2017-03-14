@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 #summarize.py
 import datetime
 import pymongo
@@ -19,7 +21,7 @@ def writeToMongoDB(currentBarket, barketData, collection, symbol):
 
 	flt = {'datetime': bar.datetime}
 	collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  
-	print bar.date, bar.time
+	#print bar.date, bar.time
 
 
 def writeToBarket(outputFile, currentBarket, barketData, collection=None, symbol='Default'):

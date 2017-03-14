@@ -113,6 +113,7 @@ HOUR_DB_NAME =  'VnTrader_Hour_Db'
 MINUTE5_DB_NAME = 'VnTrader_5Min_Db'
 MINUTE15_DB_NAME = 'VnTrader_15Min_Db'
 MINUTE30_DB_NAME = 'VnTrader_30Min_Db'
+H1_DB_NAME = 'VnTrader_H1_Db'
 
 # 引擎类型，用于区分当前策略的运行环境
 ENGINETYPE_BACKTESTING = 'backtesting'  # 回测

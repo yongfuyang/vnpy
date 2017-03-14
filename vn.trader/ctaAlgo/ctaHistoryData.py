@@ -646,20 +646,122 @@ def loadTBMinCsvByFileName(fileName, dataDir, backupDir, to5m=True, to15m=True, 
 	
 
 
-def TBDataImport(f,tbDataDir,tbDataBackupDir):
+def TBDataImport(fileName,dataDir,backupDir,to5m=True, to15m=True, to30m=True, toH1=True, toD1=True):
 	import dataUtils
-	for span in [0, 5,15,30,60]: #0 代表1天
-		print "Span: " + str(span)
-		dbName = 'myTestDBName' + str(span)
-		symbol = 'hs300'
-		collection = client[dbName][symbol]
-		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+	import csv
+	import shutil
+	import traceback 
 	
-		iFile = backupDir + '/' + 'rb1705_1Min.csv_1M.csv'
-		oFile = backupDir + '/' + 'rb1705_1Min.csv_' + str(span) + 'M.csv'
-		resample(span, iFile, oFile, collection, symbol)	
+	host, port, logging = loadMongoSetting()	
+	client = pymongo.MongoClient(host, port)
+	
+	start = time()
+	symbol=fileName.split('_')[0]
+	dbName=MINUTE_DB_NAME
 
+	print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+	collection = client[dbName][symbol]
+	collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
 
+	# 读取数据和插入到数据库
+	f=file(dataDir+'/'+fileName, 'r')
+	reader = csv.reader(f)
+	newfile = open(backupDir+'/'+fileName+'_1M.csv','w')
+	newfile.writelines('DateTime,Open,High,Low,Close,Vol,Val\n')	
+	for d in reader:
+		bar = CtaBarData()
+		bar.vtSymbol = symbol
+		bar.symbol = symbol
+		bar.open = float(d[2])
+		bar.high = float(d[3])
+		bar.low = float(d[4])
+		bar.close = float(d[5])
+		bar.barsize = 1
+
+		n1=int(float(d[1])*10000)
+		h1=int(n1/100)
+		m1=int(n1%100)			
+		daytime_str="%s %02d:%02d:00" %(d[0],h1,m1)
+
+		daytime=datetime.strptime(daytime_str, '%Y%m%d %H:%M:%S')
+		#daytime=daytime+timedelta(minutes=1)				
+		bar.date = daytime.strftime('%Y%m%d')		
+		bar.time = daytime.strftime('%H:%M:%S')		
+		bar.datetime = daytime
+		bar.volume = d[6]
+		bar.openInterest = d[7]
+
+		flt = {'datetime': bar.datetime}
+		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)  		
+
+		newfile.writelines(','.join([bar.date+' '+bar.time,d[2],d[3],d[4],d[5],bar.volume,bar.openInterest])+'\n')
+
+	f.close()
+	newfile.close()		
+	try:
+		shutil.move(dataDir+'/'+fileName, backupDir)		
+	except:
+		traceback.print_exc()
+		import os
+		os.remove(dataDir+'/'+fileName)	
+	print u'1m 插入完毕，耗时：%s' % (time()-start)
+	
+	if to5m:
+		start = time()
+		span=5
+		dbName=MINUTE5_DB_NAME
+		print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+		
+		# 锁定集合，并创建索引		    
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True) 
+		iFile = backupDir+'/'+fileName+'_1M.csv'
+		oFile = backupDir+'/'+fileName+'_5M.csv'
+		dataUtils.resample(span, iFile, oFile, collection, symbol)
+		print u'5m 插入完毕，耗时：%s' % (time()-start)
+		
+	if to15m:
+		start = time()
+		span=15
+		dbName=MINUTE15_DB_NAME
+		print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+	
+		# 锁定集合，并创建索引		    
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True) 
+		iFile = backupDir+'/'+fileName+'_1M.csv'
+		oFile = backupDir+'/'+fileName+'_15M.csv'
+		dataUtils.resample(span, iFile, oFile, collection, symbol)
+		print u'15m 插入完毕，耗时：%s' % (time()-start)	
+		
+	if to30m:
+		start = time()
+		span=30
+		dbName=MINUTE30_DB_NAME
+		print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+	
+		# 锁定集合，并创建索引		    
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True) 
+		iFile = backupDir+'/'+fileName+'_1M.csv'
+		oFile = backupDir+'/'+fileName+'_30M.csv'
+		dataUtils.resample(span, iFile, oFile, collection, symbol)
+		print u'30m 插入完毕，耗时：%s' % (time()-start)	
+		
+	if toH1:
+		start = time()
+		span=60
+		dbName=H1_DB_NAME
+		print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+
+		# 锁定集合，并创建索引		    
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True) 
+		iFile = backupDir+'/'+fileName+'_1M.csv'
+		oFile = backupDir+'/'+fileName+'_H1.csv'
+		dataUtils.resample(span, iFile, oFile, collection, symbol)
+		print u'H1 插入完毕，耗时：%s' % (time()-start)			
+		
 def autoLoadTBCsv2DB():
 	import os
 	path = os.path.abspath(os.path.dirname(__file__))
@@ -668,7 +770,7 @@ def autoLoadTBCsv2DB():
 	
 	for f in os.listdir(tbDataDir):
 		if(os.path.isfile(tbDataDir + '/' + f)):
-			loadTBMinCsvByFileName(f,tbDataDir,tbDataBackupDir)
+			TBDataImport(f,tbDataDir,tbDataBackupDir)
 			
 	
 
