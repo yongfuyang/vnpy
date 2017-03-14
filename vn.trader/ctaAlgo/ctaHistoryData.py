@@ -635,12 +635,6 @@ def loadTBMinCsvByFileName(fileName, dataDir, backupDir, to5m=True, to15m=True, 
 		df_out=df_out.dropna(how='any')
 		df_out.to_csv(backupDir+'/'+fileName+'_5M.csv')
 		
-		collection = client[dbName][symbol]
-		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
-		collection.update_one(flt, {'$set':bar.__dict__}, upsert=True)
-		
-		
-	
 	try:
 		shutil.move(dataDir+'/'+fileName, backupDir)		
 	except:
@@ -649,6 +643,22 @@ def loadTBMinCsvByFileName(fileName, dataDir, backupDir, to5m=True, to15m=True, 
 		os.remove(dataDir+'/'+fileName)
 
 	print u'插入完毕，耗时：%s' % (time()-start)	
+	
+
+
+def TBDataImport(f,tbDataDir,tbDataBackupDir):
+	import dataUtils
+	for span in [0, 5,15,30,60]: #0 代表1天
+		print "Span: " + str(span)
+		dbName = 'myTestDBName' + str(span)
+		symbol = 'hs300'
+		collection = client[dbName][symbol]
+		collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True)   
+	
+		iFile = backupDir + '/' + 'rb1705_1Min.csv_1M.csv'
+		oFile = backupDir + '/' + 'rb1705_1Min.csv_' + str(span) + 'M.csv'
+		resample(span, iFile, oFile, collection, symbol)	
+
 
 def autoLoadTBCsv2DB():
 	import os
