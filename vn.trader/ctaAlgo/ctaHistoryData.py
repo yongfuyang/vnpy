@@ -760,7 +760,21 @@ def TBDataImport(fileName,dataDir,backupDir,to5m=True, to15m=True, to30m=True, t
 		iFile = backupDir+'/'+fileName+'_1M.csv'
 		oFile = backupDir+'/'+fileName+'_H1.csv'
 		dataUtils.resample(span, iFile, oFile, collection, symbol)
-		print u'H1 插入完毕，耗时：%s' % (time()-start)			
+		print u'H1 插入完毕，耗时：%s' % (time()-start)
+		
+	if toD1:
+			start = time()
+			span=60
+			dbName=H1_DB_NAME
+			print u'开始读取CSV文件%s中的数据插入到%s的%s中' %(fileName, dbName, symbol)
+	
+			# 锁定集合，并创建索引		    
+			collection = client[dbName][symbol]
+			collection.ensure_index([('datetime', pymongo.ASCENDING)], unique=True) 
+			iFile = backupDir+'/'+fileName+'_1M.csv'
+			oFile = backupDir+'/'+fileName+'_H1.csv'
+			dataUtils.resample('D1', iFile, oFile, collection, symbol)
+			print u'H1 插入完毕，耗时：%s' % (time()-start)	
 		
 def autoLoadTBCsv2DB():
 	import os

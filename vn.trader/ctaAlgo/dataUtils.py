@@ -86,8 +86,11 @@ def resample(span, iFile, oFile, collection=None, symbol='Default'):
 				vVol = float(Vol)
 				vVal = float(Val)
 				#
-				if span == 0: # 1day
-					barket =  datetime.datetime(year, month, day)
+				if span == 'D1': # 1day
+					if hour >= 20:
+						bucket =  datetime.datetime(year, month, day) + datetime.timedelta(days=1)				
+					else:
+						bucket =  datetime.datetime(year, month, day)
 				else :
 					barket =  datetime.datetime(year, month, day, hour, minute - minute % span)
 				#to5m=True, to15m=True, to30m=True, toH1=True, toD1=True
