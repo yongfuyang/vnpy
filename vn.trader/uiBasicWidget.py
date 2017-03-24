@@ -1320,20 +1320,25 @@ class PriceWidget(QtGui.QWidget):
     #----------------------------------------------------------------------
     def __init__(self, eventEngine, mainEngine, parent=None):
         """Constructor"""
+        import pymongo
         super(PriceWidget, self).__init__(parent)
 
-        self.__eventEngine = eventEngine
-        self.__mainEngine = mainEngine
-        # MongoDB数据库相关
-        self.__mongoConnected = False
-        self.__mongoConnection = None
-        self.__mongoTickDB = None
-
-        # 调用函数
-        self.__connectMongo()
+        self.__eventEngine = mainEngine
+        self.__mainEngine = eventEngine
+        
+        loadMongoSetting()
+        host, port, logging = loadMongoSetting()
+        self.dbClient = pymongo.MongoClient(host, port)           
+        
         self.initUi(startDate=None)
         self.registerEvent()
 
+    #----------------------------------------------------------------------
+    def showK(self, cell):
+        mkt = cell.data
+        self.symbol = mkt.symbol        
+        self.initHistoricalData()
+    
     #----------------------------------------------------------------------
     def initUi(self, startDate=None):
         """初始化界面"""
@@ -1412,6 +1417,8 @@ class PriceWidget(QtGui.QWidget):
 
         if cx:
             for data in cx:
+                tick = data
+                '''
                 tick = Tick(data['InstrumentID'])
 
                 tick.openPrice = data['OpenPrice']
@@ -1451,6 +1458,7 @@ class PriceWidget(QtGui.QWidget):
                 tick.askVolume3 = data['AskVolume3']
                 tick.askVolume4 = data['AskVolume4']
                 tick.askVolume5 = data['AskVolume5']
+                '''
 
                 self.onTick(tick)
 
@@ -1509,46 +1517,50 @@ class PriceWidget(QtGui.QWidget):
     #----------------------------------------------------------------------
     def updateMarketData(self, event):
         """更新行情"""
-        data = event.dict_['data']
-        symbol = data['InstrumentID']
+        tick = event.dict_['data']
+        if tick.symbol!=self.symbol:
+            return 
+        '''
+        symbol = data['symbol']
         tick = Tick(symbol)
-        tick.openPrice = data['OpenPrice']
-        tick.highPrice = data['HighestPrice']
-        tick.lowPrice = data['LowestPrice']
-        tick.lastPrice = data['LastPrice']
+        tick.openPrice = data['openPrice']
+        tick.highPrice = data['highPrice']
+        tick.lowPrice = data['lowPrice']
+        tick.lastPrice = data['lastPrice']
 
-        tick.volume = data['Volume']
-        tick.openInterest = data['OpenInterest']
+        tick.volume = data['volume']
+        tick.openInterest = data['openInterest']
 
-        tick.upperLimit = data['UpperLimitPrice']
-        tick.lowerLimit = data['LowerLimitPrice']
+        tick.upperLimit = data['upperLimit']
+        tick.lowerLimit = data['lowerLimit']
 
-        tick.time = data['UpdateTime']
+        tick.time = data['time']
         tick.ms = data['UpdateMillisec']
 
-        tick.bidPrice1 = data['BidPrice1']
-        tick.bidPrice2 = data['BidPrice2']
-        tick.bidPrice3 = data['BidPrice3']
-        tick.bidPrice4 = data['BidPrice4']
-        tick.bidPrice5 = data['BidPrice5']
+        tick.bidPrice1 = data['bidPrice1']
+        tick.bidPrice2 = data['bidPrice2']
+        tick.bidPrice3 = data['bidPrice3']
+        tick.bidPrice4 = data['bidPrice4']
+        tick.bidPrice5 = data['bidPrice5']
 
-        tick.askPrice1 = data['AskPrice1']
-        tick.askPrice2 = data['AskPrice2']
-        tick.askPrice3 = data['AskPrice3']
-        tick.askPrice4 = data['AskPrice4']
-        tick.askPrice5 = data['AskPrice5']
+        tick.askPrice1 = data['askPrice1']
+        tick.askPrice2 = data['askPrice2']
+        tick.askPrice3 = data['askPrice3']
+        tick.askPrice4 = data['askPrice4']
+        tick.askPrice5 = data['askPrice5']
 
-        tick.bidVolume1 = data['BidVolume1']
-        tick.bidVolume2 = data['BidVolume2']
-        tick.bidVolume3 = data['BidVolume3']
-        tick.bidVolume4 = data['BidVolume4']
-        tick.bidVolume5 = data['BidVolume5']
+        tick.bidVolume1 = data['bidVolume1']
+        tick.bidVolume2 = data['bidVolume2']
+        tick.bidVolume3 = data['bidVolume3']
+        tick.bidVolume4 = data['bidVolume4']
+        tick.bidVolume5 = data['bidVolume5']
 
-        tick.askVolume1 = data['AskVolume1']
-        tick.askVolume2 = data['AskVolume2']
-        tick.askVolume3 = data['AskVolume3']
-        tick.askVolume4 = data['AskVolume4']
-        tick.askVolume5 = data['AskVolume5']
+        tick.askVolume1 = data['askVolume1']
+        tick.askVolume2 = data['askVolume2']
+        tick.askVolume3 = data['askVolume3']
+        tick.askVolume4 = data['askVolume4']
+        tick.askVolume5 = data['askVolume5']
+        '''
 
         self.onTick(tick)  # tick数据更新
 
@@ -1562,7 +1574,8 @@ class PriceWidget(QtGui.QWidget):
 
         # 首先生成datetime.time格式的时间（便于比较）,从字符串时间转化为time格式的时间
         hh, mm, ss = tick.time.split(':')
-        self.ticktime = time(int(hh), int(mm), int(ss), microsecond=tick.ms)
+        ss1,tick.ms=ss.split('.')
+        self.ticktime = time(int(hh), int(mm), int(ss1), microsecond=int(tick.ms))
 
         # 计算tick图的相关参数
         if self.ptr == 0:
@@ -1675,6 +1688,7 @@ class PriceWidget(QtGui.QWidget):
         self.plotTendency()  # K线副图，持仓量
 
     #----------------------------------------------------------------------
+    '''
     def __connectMongo(self):
         """连接MongoDB数据库"""
         try:
@@ -1683,29 +1697,31 @@ class PriceWidget(QtGui.QWidget):
             self.__mongoTickDB = self.__mongoConnection['TickDB']
         except ConnectionFailure:
             pass
+    '''
 
     #----------------------------------------------------------------------
+    '''
     def __recordTick(self, data):
         """将Tick数据插入到MongoDB中"""
         if self.__mongoConnected:
-            symbol = data['InstrumentID']
+            symbol = data['vtSymbol']
             data['date'] = self.today
             self.__mongoTickDB[symbol].insert(data)
 
+    '''
     #----------------------------------------------------------------------
     def loadTick(self, symbol, startDate, endDate=None):
         """从MongoDB中读取Tick数据"""
-        if self.__mongoConnected:
-            collection = self.__mongoTickDB[symbol]
+        import ctaBase
+        collection = self.dbClient[ctaBase.TICK_DB_NAME][symbol]
 
-            # 如果输入了读取TICK的最后日期
-            if endDate:
-                cx = collection.find({'date': {'$gte': startDate, '$lte': endDate}})
-            else:
-                cx = collection.find({'date': {'$gte': startDate}})
-            return cx
+        # 如果输入了读取TICK的最后日期
+        if endDate:
+            cx = collection.find({'date': {'$gte': startDate, '$lte': endDate}})
         else:
-            return None
+            cx = collection.find({'date': {'$gte': startDate}})
+        return cx
+
 
     #----------------------------------------------------------------------
     def registerEvent(self):

@@ -47,6 +47,8 @@ class MainWindow(QtGui.QMainWindow):
         self.monitorDict['Trade'] = widgetTradeM
         widgetOrderM, dockOrderM = self.createDock(OrderMonitor, u'委托', QtCore.Qt.RightDockWidgetArea)
         self.monitorDict['Order'] = widgetOrderM
+        widgetPriceW, dockPriceW = self.createDock(PriceWidget, u'K线', QtCore.Qt.RightDockWidgetArea)
+        self.monitorDict['Price'] = widgetPriceW        
         widgetPositionM, dockPositionM = self.createDock(PositionMonitor, u'持仓', QtCore.Qt.BottomDockWidgetArea)
         self.monitorDict['Position'] = widgetPositionM
         widgetPositionDetailM, dockPositionDetailM = self.createDock(PositionDetailMonitor, u'持仓明细', QtCore.Qt.BottomDockWidgetArea)
@@ -57,6 +59,7 @@ class MainWindow(QtGui.QMainWindow):
     
         self.tabifyDockWidget(dockTradeM, dockErrorM)
         self.tabifyDockWidget(dockTradeM, dockLogM)
+        self.tabifyDockWidget(dockOrderM, dockPriceW)
         self.tabifyDockWidget(dockPositionM, dockAccountM)
         self.tabifyDockWidget(dockAccountM,dockPositionDetailM)
     
@@ -68,6 +71,7 @@ class MainWindow(QtGui.QMainWindow):
         widgetPositionM.itemDoubleClicked.connect(widgetTradingW.closePosition)
         widgetPositionDetailM.itemDoubleClicked.connect(widgetTradingW.closePosition)
         widgetMarketM.itemDoubleClicked.connect(widgetTradingW.getPrice)
+        widgetMarketM.itemDoubleClicked.connect(widgetPriceW.showK)
 
 
     #----------------------------------------------------------------------
