@@ -9,7 +9,7 @@ import ctypes
 import sys
 
 from demoEngine import MainEngine
-from demoUi import *
+from demoUi2 import *
 
 #----------------------------------------------------------------------
 def main():
