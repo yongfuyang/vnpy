@@ -469,6 +469,7 @@ class BacktestingEngine(object):
         """输出内容"""
         print str(datetime.now()) + "\t" + content 
     
+    
     #----------------------------------------------------------------------
     def calculateBacktestingResult(self):
         """
@@ -599,7 +600,17 @@ class BacktestingEngine(object):
         totalWinning = 0        # 总盈利金额		
         totalLosing = 0         # 总亏损金额        
         
+        
+        import csv
+        csvfile = file(self.strategy.name+'_result.csv', 'wb')
+        writer = csv.writer(csvfile)
+        writer.writerow(['open', 'opentime', 'close', 'closetime', 'vol', 'commission', 'splipage', 'pnl'])
+               
+
         for result in resultList:
+            row=[[str(result.entryPrice),result.entryDt.strftime("%Y-%m-%d %H:%M:%S"),str(result.exitPrice),result.exitDt.strftime("%Y-%m-%d %H:%M:%S"),str(result.volume),str(result.commission),str(result.slippage),str(result.pnl)]]
+            writer.writerows(row)
+            
             capital += result.pnl
             maxCapital = max(capital, maxCapital)
             drawdown = capital - maxCapital
@@ -620,7 +631,9 @@ class BacktestingEngine(object):
             else:
                 losingResult += 1
                 totalLosing += result.pnl
-                
+        
+        csvfile.close() 
+        
         # 计算盈亏相关数据
         winningRate = winningResult/totalResult*100         # 胜率
         
