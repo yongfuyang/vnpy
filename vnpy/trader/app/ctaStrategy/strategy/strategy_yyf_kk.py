@@ -253,8 +253,6 @@ class YYFKkStrategy(CtaTemplate):
         self.highArray[-1] = bar.high
         self.lowArray[-1] = bar.low
         
-        self.highAfterEntry[-1]=self.highAfterEntry[-2]
-        self.lowAfterEntry[-1]=self.lowAfterEntry[-2]
     
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
@@ -269,6 +267,19 @@ class YYFKkStrategy(CtaTemplate):
         self.kkUp = self.kkMid + self.atrValue * self.kkDev
         self.kkDown = self.kkMid - self.atrValue * self.kkDev
     
+        if self.highAfterEntry[-2]==0:
+            self.highAfterEntry[-1]=self.kkUp
+        else:
+            self.highAfterEntry[-1]=self.highAfterEntry[-2]
+            
+        if self.lowAfterEntry[-2]==0:
+            self.lowAfterEntry[-1]=self.kkDown
+        else:
+            self.lowAfterEntry[-1]=self.lowAfterEntry[-2]
+            
+        
+        print bar.datetime,self.highAfterEntry[-1],self.lowAfterEntry[-1],self.kkUp,self.kkDown,self.atrValue
+        
         # 判断是否要进行交易
     
         # 当前无仓位，发送OCO开仓委托
@@ -290,9 +301,8 @@ class YYFKkStrategy(CtaTemplate):
                 _stopLine=self.highAfterEntry[-1]  - self.atrValue*self.trailingStopATRs
 
 
-            if (bar.close < _stopLine):
-                orderID = self.sell(_stopLine, abs(self.pos), True)
-                self.orderList.append(orderID)
+            orderID = self.sell(_stopLine, abs(self.pos), True)
+            self.orderList.append(orderID)
             
             
             #orderID = self.sell(self.intraTradeHigh*(1-self.trailingPrcnt/100),abs(self.pos), True)
@@ -312,9 +322,8 @@ class YYFKkStrategy(CtaTemplate):
             if (_stopLine > self.lowAfterEntry[-1]  + self.atrValue*self.trailingStopATRs):
                 _stopLine=self.lowAfterEntry[-1]  + self.atrValue*self.trailingStopATRs
 
-            if (bar.close > _stopLine):
-                orderID = self.cover(_stopLine, abs(self.pos), True)
-                self.orderList.append(orderID)
+            orderID = self.cover(_stopLine, abs(self.pos), True)
+            self.orderList.append(orderID)
 
             #orderID = self.cover(self.intraTradeLow*(1+self.trailingPrcnt/100),abs(self.pos), True)
             #self.orderList.append(orderID)
