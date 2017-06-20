@@ -252,7 +252,7 @@ class YYFKkStrategy(CtaTemplate):
         self.closeArray[-1] = bar.close
         self.highArray[-1] = bar.high
         self.lowArray[-1] = bar.low
-        
+        _stopLine=0
     
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
@@ -276,9 +276,7 @@ class YYFKkStrategy(CtaTemplate):
             self.lowAfterEntry[-1]=self.kkDown
         else:
             self.lowAfterEntry[-1]=self.lowAfterEntry[-2]
-            
         
-        print bar.datetime,self.highAfterEntry[-1],self.lowAfterEntry[-1],self.kkUp,self.kkDown,self.atrValue
         
         # 判断是否要进行交易
     
@@ -303,8 +301,7 @@ class YYFKkStrategy(CtaTemplate):
 
             orderID = self.sell(_stopLine, abs(self.pos), True)
             self.orderList.append(orderID)
-            
-            
+           
             #orderID = self.sell(self.intraTradeHigh*(1-self.trailingPrcnt/100),abs(self.pos), True)
             #self.orderList.append(orderID)
     
@@ -329,6 +326,7 @@ class YYFKkStrategy(CtaTemplate):
             #self.orderList.append(orderID)
     
         # 发出状态更新事件
+        print bar.datetime,"hi=",self.highAfterEntry[-1]," lo=",self.lowAfterEntry[-1]," sl=",_stopLine," atr=",self.atrValue 
         self.putEvent()        
 
     #----------------------------------------------------------------------
@@ -340,7 +338,9 @@ class YYFKkStrategy(CtaTemplate):
     def onTrade(self, trade):
         # 多头开仓成交后，撤消空头委托
         if self.pos > 0:
-            self.lowAfterEntry[-1] =self.highAfterEntry[-1] 
+            self.lowAfterEntry[-1] = trade.price
+            self.highAfterEntry[-1] = trade.price 
+            self.entryPrice = trade.price
             
             self.cancelOrder(self.shortOrderID)
             if self.buyOrderID in self.orderList:
@@ -349,7 +349,9 @@ class YYFKkStrategy(CtaTemplate):
                 self.orderList.remove(self.shortOrderID)
         # 反之同样
         elif self.pos < 0:
-            self.highAfterEntry[-1] =self.lowAfterEntry[-1] 
+            self.lowAfterEntry[-1] = trade.price
+            self.highAfterEntry[-1] = trade.price 
+            self.entryPrice = trade.price
             
             self.cancelOrder(self.buyOrderID)
             if self.buyOrderID in self.orderList:
