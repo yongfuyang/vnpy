@@ -825,7 +825,7 @@ class BacktestingEngine(object):
             l.append(pool.apply_async(optimize, (strategyClass, setting,
                                                  targetName, self.mode, 
                                                  self.startDate, self.initDays, self.endDate,
-                                                 self.slippage, self.rate, self.size,
+                                                 self.slippage, self.rate, self.size, self.priceTick,
                                                  self.dbName, self.symbol)))
         pool.close()
         pool.join()
@@ -942,7 +942,7 @@ def formatNumber(n):
 #----------------------------------------------------------------------
 def optimize(strategyClass, setting, targetName,
              mode, startDate, initDays, endDate,
-             slippage, rate, size,
+             slippage, rate, size, priceTick,
              dbName, symbol):
     """多进程优化时跑在每个进程中运行的函数"""
     engine = BacktestingEngine()
@@ -952,6 +952,7 @@ def optimize(strategyClass, setting, targetName,
     engine.setSlippage(slippage)
     engine.setRate(rate)
     engine.setSize(size)
+    engine.setPriceTick(priceTick)
     engine.setDatabase(dbName, symbol)
     
     engine.initStrategy(strategyClass, setting)
