@@ -47,7 +47,7 @@ class YYFTurtleStrategy(CtaTemplate):
     boLength = 20 #短周期 BreakOut Length
     fsLength = 55 #长周期 FailSafe Length
     teLength = 10 #离市周期 Trailing Exit Length
-    LastProfitableTradeFilter = True #使用入市过滤条件
+    LastProfitableTradeFilter = False #使用入市过滤条件
 
     # 策略变量
     bar = None                  # 1分钟K线对象
@@ -76,7 +76,8 @@ class YYFTurtleStrategy(CtaTemplate):
     preEntryPrice = 0         # 前一次开仓的价格
     PreBreakoutFailure = False   # 前一次突破是否失败
     BarsSinceLastEntry = 0 # 最近一次加仓距离当前Bar的Bar数目
-
+    stopOrderID=None
+    
 
     bufferSize = 100                    # 需要缓存的数据的大小
     bufferCount = 0                     # 目前已经缓存了的数据的计数
@@ -281,8 +282,6 @@ class YYFTurtleStrategy(CtaTemplate):
                                   self.ATRLength)
         self.N = self.AvgTR[-1]
 
-
-
         self.TurtleUnits = ((self.TotalEquity)*self.RiskRatio/100) // (self.N * self.BigPointValue)
 
 
@@ -300,145 +299,26 @@ class YYFTurtleStrategy(CtaTemplate):
     
         # 判断是否要进行交易
     
-        High = bar.high
-        Low = bar.low
-        Open = bar.open
-        Close = bar.close
-
         self.SendOrderThisBar = False
 
         # 当不使用过滤条件，或者使用过滤条件并且条件为PreBreakoutFailure为True进行后续操作
         if(self.pos == 0 and ((not self.LastProfitableTradeFilter) or (self.PreBreakoutFailure))):
-            if High > self.DonchianHi:
-                orderID = self.buy(self.DonchianHi,self.TurtleUnits, True)
-                self.orderList.append(orderID)
+            orderID = self.buy(self.DonchianHi,self.TurtleUnits, True)
+            self.orderList.append(orderID)                
 
-                self.myEntryPrice = max(self.DonchianHi, Open)
-                self.preEntryPrice = self.myEntryPrice
-                self.SendOrderThisBar = True
-                self.PreBreakoutFailure = False
-            elif Low < self.DonchianLo:
-                orderID = self.shortOrderID = self.short(self.DonchianLo,self.TurtleUnits, True)
-                self.orderList.append(orderID)
+            orderID = self.short(self.DonchianLo,self.TurtleUnits, True)
+            self.orderList.append(orderID)                
 
-                self.myEntryPrice = min(self.DonchianLo, Open)
-                self.preEntryPrice = self.myEntryPrice
-                self.SendOrderThisBar = True
-                self.PreBreakoutFailure = False
+        if(self.pos == 0): 
 
-        if(not self.SendOrderThisBar and self.pos == 0): 
-            if High > self.fsDonchianHi:
-                self.myEntryPrice = max(self.fsDonchianHi, Open)
-                self.preEntryPrice = self.myEntryPrice
+            orderID = self.buy(self.fsDonchianHi,self.TurtleUnits, True)
+            self.orderList.append(orderID)
 
-                orderID = self.buy(self.fsDonchianHi,self.TurtleUnits, True)
-                self.orderList.append(orderID)
-
-                self.SendOrderThisBar = True
-                self.PreBreakoutFailure = False
-            elif Low < self.fsDonchianLo:
-                self.myEntryPrice = min(self.fsDonchianLo,Open)
-                self.preEntryPrice = self.myEntryPrice
-
-                orderID = self.shortOrderID = self.short(self.fsDonchianLo,self.TurtleUnits, True)
-                self.orderList.append(orderID)
-
-                self.SendOrderThisBar = True
-                self.PreBreakoutFailure = False
-
-        # 持有多头仓位
-        elif self.pos > 0:
-
-            if Low < self.ExitLowestPrice:
-                self.myExitPrice = min(self.ExitLowestPrice, Open)
-                orderID = self.sell(self.myExitPrice, 
-                                abs(self.pos), True)
-                self.orderList.append(orderID)
-                self.PreBreakoutFailure = True
-            else:
-                #加仓
-                if(self.BarsSinceLastEntry>=1 and self.preEntryPrice is not None):
-                
-                    if(Open >= self.preEntryPrice + 0.5*self.N): # 如果开盘就超过设定的1/2N,则直接用开盘价增仓。
-                        self.myEntryPrice = Open
-                        self.preEntryPrice = self.myEntryPrice
-
-                        orderID = self.buy(self.myEntryPrice,self.TurtleUnits, True)
-                        self.orderList.append(orderID)
-
-                        self.SendOrderThisBar = True
-                    
-
-                    while(self.BarsSinceLastEntry >=1 and High >= self.preEntryPrice + 0.5*self.N): # 以最高价为标准，判断能进行几次增仓
-                        self.myEntryPrice = self.preEntryPrice + 0.5 * self.N
-                        self.preEntryPrice = self.myEntryPrice
-                        orderID = self.buy(self.myEntryPrice,self.TurtleUnits, True)
-                        self.orderList.append(orderID)
-
-                        self.SendOrderThisBar = True                    
-                    
-                # 止损指令
-                if(Low <= self.preEntryPrice - 2 * self.N and self.SendOrderThisBar == False): # 加仓Bar不止损
-                    self.myExitPrice = self.preEntryPrice - 2 * self.N
-                    self.myExitPrice = min(Open, self.myExitPrice) # 大跳空的时候用开盘价代替
-                    orderID = self.sell(self.myExitPrice, 
-                                abs(self.pos), True)
-                    self.orderList.append(orderID)
-
-                    self.PreBreakoutFailure = True
-                
-        elif self.pos < 0:
-
-
-            if High > self.ExitHighestPrice:
-                self.myExitPrice = max(self.ExitHighestPrice, Open)
-                orderID = self.cover(self.myExitPrice, 
-                                abs(self.pos), True)
-                self.orderList.append(orderID)
-                self.PreBreakoutFailure = True
-            else:
-                #加仓
-                if(self.BarsSinceLastEntry>=1 and self.preEntryPrice is not None):
-                
-                    if(Open <= self.preEntryPrice - 0.5*self.N): # 如果开盘就超过设定的1/2N,则直接用开盘价增仓。
-                        self.myEntryPrice = Open
-                        self.preEntryPrice = self.myEntryPrice
-
-                        orderID = self.short(self.myEntryPrice,self.TurtleUnits, True)
-                        self.orderList.append(orderID)
-
-                        self.SendOrderThisBar = True
-                    
-
-                    while(self.BarsSinceLastEntry >=1 and Low <= self.preEntryPrice - 0.5*self.N): # 以最高价为标准，判断能进行几次增仓
-                        self.myEntryPrice = self.preEntryPrice - 0.5 * self.N
-                        self.preEntryPrice = self.myEntryPrice
-                        orderID = self.short(self.myEntryPrice,self.TurtleUnits, True)
-                        self.orderList.append(orderID)
-
-                        self.SendOrderThisBar = True                    
-                    
-                # 止损指令
-                if(High >= self.preEntryPrice + 2 * self.N and self.SendOrderThisBar == False): # 加仓Bar不止损
-                    self.myExitPrice = self.preEntryPrice + 2 * self.N
-                    self.myExitPrice = max(Open, self.myExitPrice) # 大跳空的时候用开盘价代替
-                    orderID = self.cover(self.myExitPrice, 
-                                abs(self.pos), True)
-                    self.orderList.append(orderID)
-
-                    self.PreBreakoutFailure = True
-
-
-
-        # Update BarsSinceLastEntry
-
-        if self.SendOrderThisBar:
-            self.BarsSinceLastEntry += 1
-        elif self.PreBreakoutFailure:
-            self.BarsSinceLastEntry = 0
-
-        
-
+            orderID = self.short(self.fsDonchianLo,self.TurtleUnits, True)
+            self.orderList.append(orderID)
+      
+      
+        self.BarsSinceLastEntry += 1 
         self.putEvent()        
 
     #----------------------------------------------------------------------
@@ -450,6 +330,24 @@ class YYFTurtleStrategy(CtaTemplate):
     def onTrade(self, trade):
         # 多头开仓成交后，撤消空头委托
         if self.pos > 0:
+            self.BarsSinceLastEntry=0
+            self.myEntryPrice = trade.price
+            self.preEntryPrice = self.myEntryPrice
+            self.SendOrderThisBar = True
+            self.PreBreakoutFailure = False 
+            
+            if trade.orderID== self.stopOrderID:
+                self.PreBreakoutFailure = True
+            
+            orderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            self.orderList.append(orderID) 
+            
+            self.stopOrderID = self.sell(self.myEntryPrice - 2*self.N, self.TurtleUnits, True) #设置止损stop单
+            self.orderList.append(self.stopOrderID)            
+            
+            orderID = self.buy(self.myEntryPrice + 0.5*self.N,self.TurtleUnits, True) # 设置加仓的stop单
+            self.orderList.append(orderID)            
+
             self.cancelOrder(self.shortOrderID)
             if self.buyOrderID in self.orderList:
                 self.orderList.remove(self.buyOrderID)
@@ -457,6 +355,24 @@ class YYFTurtleStrategy(CtaTemplate):
                 self.orderList.remove(self.shortOrderID)
         # 反之同样
         elif self.pos < 0:
+            self.BarsSinceLastEntry=0
+            self.myEntryPrice = trade.price
+            self.preEntryPrice = self.myEntryPrice
+            self.SendOrderThisBar = True
+            self.PreBreakoutFailure = False  
+            
+            if trade.orderID== self.stopOrderID:
+                self.PreBreakoutFailure = True            
+            
+            orderID = self.cover(self.ExitHighestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            self.orderList.append(orderID)  
+            
+            self.stopOrderID = self.sell(self.myEntryPrice + 2*self.N, self.TurtleUnits, True) #设置止损stop单
+            self.orderList.append(self.stopOrderID)               
+            
+            orderID = self.short(self.myEntryPrice - 0.5*self.N , self.TurtleUnits, True) # 设置加仓的stop单
+            self.orderList.append(orderID)            
+            
             self.cancelOrder(self.buyOrderID)
             if self.buyOrderID in self.orderList:
                 self.orderList.remove(self.buyOrderID)

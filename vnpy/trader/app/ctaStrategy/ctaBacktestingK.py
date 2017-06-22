@@ -22,7 +22,7 @@ from vnpy.trader.app.ctaStrategy.ctaBase import *
 import time
 
 ########################################################################
-class BacktestingEngine(object):
+class BacktestingEngineK(object):
     """
     CTA回测引擎
     函数接口和策略引擎保持一样，
