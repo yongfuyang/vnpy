@@ -121,6 +121,8 @@ class VtTradeData(VtBaseData):
         self.orderID = EMPTY_STRING             # 订单编号
         self.vtOrderID = EMPTY_STRING           # 订单在vt系统中的唯一编号，通常是 Gateway名.订单编号
         
+        self.stopOrderID = EMPTY_STRING         # stop 订单的 stopOrderID
+        
         # 成交相关
         self.direction = EMPTY_UNICODE          # 成交方向
         self.offset = EMPTY_UNICODE             # 成交开平仓

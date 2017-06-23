@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
 	# 设置回测用的数据起始日期
 	engine.setStartDate('20120101')
-	#engine.setEndDate('20120112')
+	#engine.setEndDate('20120201')
 
 	# 设置产品相关参数
 	engine.setSlippage(0.2)     # 股指1跳
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 	engine.setDatabase(MINUTE_DB_NAME, 'IF0000')
 
 	# 在引擎中创建策略对象
-	d = {'atrLength': 11, "timeFrame":5}
+	d = {"timeFrame":5}
 	engine.initStrategy(YYFTurtleStrategy, d)
 
 	# 开始跑回测
