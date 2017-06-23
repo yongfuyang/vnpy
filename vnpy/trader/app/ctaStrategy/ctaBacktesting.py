@@ -293,6 +293,7 @@ class BacktestingEngine(object):
         self.stopOrderDict[stopOrderID] = so
         self.workingStopOrderDict[stopOrderID] = so
         
+        print so.stopOrderID,so.price,so.volume,so.direction,so.offset
         return stopOrderID
     
     #----------------------------------------------------------------------
@@ -400,6 +401,7 @@ class BacktestingEngine(object):
                 trade.vtTradeID = tradeID
                 
                 if buyCross:
+                    
                     self.strategy.pos += so.volume
                     trade.price = max(bestCrossPrice, so.price)
                 else:
@@ -416,6 +418,7 @@ class BacktestingEngine(object):
                 trade.volume = so.volume
                 trade.tradeTime = str(self.dt)
                 trade.dt = self.dt
+                trade.stopOrderID = stopOrderID
                 self.strategy.onTrade(trade)
                 
                 self.tradeDict[tradeID] = trade

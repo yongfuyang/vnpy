@@ -282,7 +282,7 @@ class YYFTurtleStrategy(CtaTemplate):
                                   self.ATRLength)
         self.N = self.AvgTR[-1]
 
-        self.TurtleUnits = ((self.TotalEquity)*self.RiskRatio/100) // (self.N * self.BigPointValue)
+        self.TurtleUnits = 1  #((self.TotalEquity)*self.RiskRatio/100) // (self.N * self.BigPointValue)
 
 
         DonChianArray = self.closeArray[-self.fsLength-1:-1]
@@ -301,14 +301,7 @@ class YYFTurtleStrategy(CtaTemplate):
     
         self.SendOrderThisBar = False
 
-        # 当不使用过滤条件，或者使用过滤条件并且条件为PreBreakoutFailure为True进行后续操作
-        if(self.pos == 0 and ((not self.LastProfitableTradeFilter) or (self.PreBreakoutFailure))):
-            orderID = self.buy(self.DonchianHi,self.TurtleUnits, True)
-            self.orderList.append(orderID)                
-
-            orderID = self.short(self.DonchianLo,self.TurtleUnits, True)
-            self.orderList.append(orderID)                
-
+        '''
         if(self.pos == 0): 
 
             orderID = self.buy(self.fsDonchianHi,self.TurtleUnits, True)
@@ -316,9 +309,39 @@ class YYFTurtleStrategy(CtaTemplate):
 
             orderID = self.short(self.fsDonchianLo,self.TurtleUnits, True)
             self.orderList.append(orderID)
-      
+        '''         
+
+        # 当不使用过滤条件，或者使用过滤条件并且条件为PreBreakoutFailure为True进行后续操作
+        if(self.pos == 0 and ((not self.LastProfitableTradeFilter) or (self.PreBreakoutFailure))):
+            orderID = self.buy(self.DonchianHi,self.TurtleUnits, True)
+            self.orderList.append(orderID)                
         
-        print bar.datetime,"up=",self.DonchianHi," dn=",self.DonchianLo," lup=",self.fsDonchianHi,"ldn=",self.fsDonchianLo,"N=",self.N," high=", bar.high, "low=",bar.low,"olist=",self.orderList,"pos=",self.pos
+            orderID = self.short(self.DonchianLo,self.TurtleUnits, True)
+            self.orderList.append(orderID)
+        
+        elif (self.pos > 0):
+            orderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            self.orderList.append(orderID) 
+        
+            self.stopOrderID = self.sell(self.preEntryPrice - 2*self.N, self.TurtleUnits, True) #设置止损stop单
+            self.orderList.append(self.stopOrderID)            
+        
+            orderID = self.buy(self.preEntryPrice + 0.5*self.N,self.TurtleUnits, True) # 设置加仓的stop单
+            self.orderList.append(orderID) 
+            
+        elif (self.pos < 0):
+            orderID = self.cover(self.ExitHighestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            self.orderList.append(orderID)  
+        
+            self.stopOrderID = self.cover(self.preEntryPrice + 2*self.N, self.TurtleUnits, True) #设置止损stop单
+            self.orderList.append(self.stopOrderID)               
+        
+            orderID = self.short(self.preEntryPrice - 0.5*self.N , self.TurtleUnits, True) # 设置加仓的stop单
+            self.orderList.append(orderID)            
+        
+        print bar.datetime,"up=",self.DonchianHi," dn=",self.DonchianLo," lup=",self.fsDonchianHi,"ldn=",self.fsDonchianLo,"N=",self.N," high=", bar.high, "low=",bar.low,"preEntryPrice=",self.preEntryPrice,"ExitHighestPrice=",self.ExitHighestPrice,"ExitLowestPrice=",self.ExitLowestPrice,"olist=",self.orderList,"pos=",self.pos
+        for o in self.orderList:
+            print o 
         self.BarsSinceLastEntry += 1 
         self.putEvent()        
 
@@ -330,55 +353,37 @@ class YYFTurtleStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onTrade(self, trade):
         # 多头开仓成交后，撤消空头委托
+        print trade.tradeTime,"---onTrade----> pos=",self.pos," orderID=",trade.orderID, " stopOrderID=", trade.tradeTime,trade.stopOrderID,trade.price
+        
+        if self.pos==0:
+            self.cancelOrder(self.stopOrderID)
+            if self.stopOrderID in self.orderList:
+                self.orderList.remove(self.stopOrderID)
+            
         if self.pos > 0:
+                       
             self.BarsSinceLastEntry=0
             self.myEntryPrice = trade.price
             self.preEntryPrice = self.myEntryPrice
             self.SendOrderThisBar = True
             self.PreBreakoutFailure = False 
             
-            if trade.orderID== self.stopOrderID:
+            if trade.stopOrderID== self.stopOrderID:
                 self.PreBreakoutFailure = True
-            
-            orderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
-            self.orderList.append(orderID) 
-            
-            self.stopOrderID = self.sell(self.myEntryPrice - 2*self.N, self.TurtleUnits, True) #设置止损stop单
-            self.orderList.append(self.stopOrderID)            
-            
-            orderID = self.buy(self.myEntryPrice + 0.5*self.N,self.TurtleUnits, True) # 设置加仓的stop单
-            self.orderList.append(orderID)            
+                        
 
-            self.cancelOrder(self.shortOrderID)
-            if self.buyOrderID in self.orderList:
-                self.orderList.remove(self.buyOrderID)
-            if self.shortOrderID in self.orderList:
-                self.orderList.remove(self.shortOrderID)
         # 反之同样
         elif self.pos < 0:
+                         
             self.BarsSinceLastEntry=0
             self.myEntryPrice = trade.price
             self.preEntryPrice = self.myEntryPrice
             self.SendOrderThisBar = True
             self.PreBreakoutFailure = False  
             
-            if trade.orderID== self.stopOrderID:
+            if trade.stopOrderID== self.stopOrderID:
                 self.PreBreakoutFailure = True            
-            
-            orderID = self.cover(self.ExitHighestPrice, abs(self.pos), True)  #设置全部退出的stop单
-            self.orderList.append(orderID)  
-            
-            self.stopOrderID = self.sell(self.myEntryPrice + 2*self.N, self.TurtleUnits, True) #设置止损stop单
-            self.orderList.append(self.stopOrderID)               
-            
-            orderID = self.short(self.myEntryPrice - 0.5*self.N , self.TurtleUnits, True) # 设置加仓的stop单
-            self.orderList.append(orderID)            
-            
-            self.cancelOrder(self.buyOrderID)
-            if self.buyOrderID in self.orderList:
-                self.orderList.remove(self.buyOrderID)
-            if self.shortOrderID in self.orderList:
-                self.orderList.remove(self.shortOrderID)
+ 
         
         # 发出状态更新事件
         self.putEvent()
