@@ -417,6 +417,7 @@ class BacktestingEngineK(object):
                 trade.volume = so.volume
                 trade.tradeTime = str(self.dt)
                 trade.dt = self.dt
+                trade.stopOrderID = stopOrderID
                 self.strategy.onTrade(trade)
                 
                 self.tradeDict[tradeID] = trade
@@ -826,7 +827,7 @@ class BacktestingEngineK(object):
             l.append(pool.apply_async(optimize, (strategyClass, setting,
                                                  targetName, self.mode, 
                                                  self.startDate, self.initDays, self.endDate,
-                                                 self.slippage, self.rate, self.size,
+                                                 self.slippage, self.rate, self.size, self.priceTick,
                                                  self.dbName, self.symbol)))
         pool.close()
         pool.join()
@@ -943,7 +944,7 @@ def formatNumber(n):
 #----------------------------------------------------------------------
 def optimize(strategyClass, setting, targetName,
              mode, startDate, initDays, endDate,
-             slippage, rate, size,
+             slippage, rate, size, priceTick,
              dbName, symbol):
     """多进程优化时跑在每个进程中运行的函数"""
     engine = BacktestingEngine()
@@ -953,6 +954,7 @@ def optimize(strategyClass, setting, targetName,
     engine.setSlippage(slippage)
     engine.setRate(rate)
     engine.setSize(size)
+    engine.setPriceTick(priceTick)
     engine.setDatabase(dbName, symbol)
     
     engine.initStrategy(strategyClass, setting)
@@ -1035,7 +1037,67 @@ def update():
         # 直接在cmd中回测则只会打印一些回测数值
         engine.showBacktestingResult()        
 
+def runBacktestingK(self):
+    """运行回测"""
+    # 载入历史数据
+    self.loadHistoryData()
+    
+    # 首先根据回测模式，确认要使用的数据类
+    if self.mode == self.BAR_MODE:
+        dataClass = VtBarData
+        func = self.newBar
+    else:
+        dataClass = VtTickData
+        func = self.newTick
 
+    self.output(u'开始回测')
+    
+    self.strategy.inited = True
+    self.strategy.onInit()
+    self.output(u'策略初始化完成')
+    
+    self.strategy.trading = True
+    self.strategy.onStart()
+    self.output(u'策略启动完成')
+    
+    self.output(u'开始回放数据')
+
+    '''
+    for d in self.dbCursor:
+        data = dataClass()
+        data.__dict__ = d
+        func(data)
+    '''
+    
+    app = QtGui.QApplication([])
+    item = CandlestickItem()
+    
+    # 初始值
+    count = 0
+    data = []
+    BAR_COUNT = 60
+    for i in range(0,BAR_COUNT):
+        d = engine.dbCursor[count]
+        mdata = dataClass()
+        mdata.__dict__ = d
+        func(mdata)  # 策略执行        
+        new_bar = [count,mdata.open,mdata.close,mdata.low,mdata.high]
+        data.append(new_bar)  
+        count = count+1
+        
+    item.set_data(data)
+    plt = pg.plot()
+    plt.addItem(item)
+    plt.setWindowTitle('pyqtgraph example: customGraphicsItem')
+
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)
+    timer.start(200)  # 定时间隔
+
+    import sys
+    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+        QtGui.QApplication.instance().exec_()            
+    self.output(u'数据回放结束')
         
         
         
