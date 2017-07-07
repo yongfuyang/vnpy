@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
 	# 设置回测用的数据起始日期
 	engine.setStartDate('20120101')
-	#engine.setEndDate('20120201')
+	engine.setEndDate('20120201')
 
 	# 设置产品相关参数
 	engine.setSlippage(0.2)     # 股指1跳
@@ -107,56 +107,7 @@ if __name__ == '__main__':
 	engine.initStrategy(YYFTurtleStrategy, d)
 	
 	# 开始跑回测
-	#engine.runBacktesting()
+	engine.runBacktesting()
 
-	# 载入历史数据
-	engine.loadHistoryData()	
-	
-	if engine.mode == engine.BAR_MODE:
-		dataClass = VtTickData
-		func = engine.newBar
-	else:
-		dataClass = CtaTickData
-		func = engine.newTick
-
-	engine.output(u'开始回测')
-
-	engine.strategy.inited = True
-	engine.strategy.onInit()
-	engine.output(u'策略初始化完成')
-
-	engine.strategy.trading = True
-	engine.strategy.onStart()
-	engine.output(u'策略启动完成')
-
-	engine.output(u'开始回放数据')	
-
-	# 开始跑回测
-	app = QtGui.QApplication([])
-	item = CandlestickItem()
-
-	# 初始值
-	count = 0
-	data = []
-	BAR_COUNT = 60
-	for i in range(0,BAR_COUNT):
-		d = engine.dbCursor[count]
-		mdata = dataClass()
-		mdata.__dict__ = d
-		func(mdata)  # 策略执行        
-		new_bar = [count,mdata.open,mdata.close,mdata.low,mdata.high]
-		data.append(new_bar)  
-		count = count+1
-
-	item.set_data(data)
-	plt = pg.plot()
-	plt.addItem(item)
-	plt.setWindowTitle('pyqtgraph example: customGraphicsItem')
-
-	timer = QtCore.QTimer()
-	timer.timeout.connect(update)
-	timer.start(200)  # 定时间隔
-
-	import sys
-	if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-		QtGui.QApplication.instance().exec_()	
+	# 显示回测结果
+	engine.showBacktestingResult()	
