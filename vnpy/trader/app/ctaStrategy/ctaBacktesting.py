@@ -270,7 +270,7 @@ class BacktestingEngine(object):
         
         so = StopOrder()
         so.vtSymbol = vtSymbol
-        so.price = self.roundToPriceTick(price)
+        #so.price = self.roundToPriceTick(price)
         so.volume = volume
         so.strategy = strategy
         so.stopOrderID = stopOrderID
@@ -279,21 +279,25 @@ class BacktestingEngine(object):
         if orderType == CTAORDER_BUY:
             so.direction = DIRECTION_LONG
             so.offset = OFFSET_OPEN
+            so.price = self.ceilToPriceTick(price)
         elif orderType == CTAORDER_SELL:
             so.direction = DIRECTION_SHORT
             so.offset = OFFSET_CLOSE
+            so.price = self.floorToPriceTick(price)
         elif orderType == CTAORDER_SHORT:
             so.direction = DIRECTION_SHORT
             so.offset = OFFSET_OPEN
+            so.price = self.floorToPriceTick(price)
         elif orderType == CTAORDER_COVER:
             so.direction = DIRECTION_LONG
-            so.offset = OFFSET_CLOSE           
+            so.offset = OFFSET_CLOSE         
+            so.price = self.ceilToPriceTick(price)
         
         # 保存stopOrder对象到字典中
         self.stopOrderDict[stopOrderID] = so
         self.workingStopOrderDict[stopOrderID] = so
         
-        print so.stopOrderID,so.price,so.volume,so.direction,so.offset
+        print "sendStopOrder:",so.stopOrderID,so.price,so.volume,so.direction,so.offset
         return stopOrderID
     
     #----------------------------------------------------------------------
@@ -850,8 +854,22 @@ class BacktestingEngine(object):
         newPrice = round(price/self.priceTick, 0) * self.priceTick
         return newPrice
     
+    def floorToPriceTick(self, price):
+            """取整价格到合约最小价格变动"""
+            if not self.priceTick:
+                return price
+            
+            import math
+            newPrice = round(math.floor(price*10/(self.priceTick*10)) * self.priceTick,1)
+            return newPrice    
         
-
+    def ceilToPriceTick(self, price):
+            """取整价格到合约最小价格变动"""
+            if not self.priceTick:
+                return price
+            import math
+            newPrice = round(math.ceil(price*10/(self.priceTick*10)) * self.priceTick,1)
+            return newPrice    
 ########################################################################
 class TradingResult(object):
     """每笔交易的结果"""

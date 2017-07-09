@@ -61,6 +61,7 @@ class YYFTurtleStrategy(CtaTemplate):
     BigPointValue = 300
     MinPoint = 0.1                       # 最小变动单位 ?
     AvgTR = None                    # ATR
+    TR = None
     N  = None                   # N 值
     TotalEquity = 1000000                    # 按最新收盘价计算出的总资产
     TurtleUnits = None                    # 交易单位
@@ -77,6 +78,7 @@ class YYFTurtleStrategy(CtaTemplate):
     PreBreakoutFailure = False   # 前一次突破是否失败
     BarsSinceLastEntry = 0 # 最近一次加仓距离当前Bar的Bar数目
     stopOrderID=None
+    exitOrderID=None
     
 
     bufferSize = 100                    # 需要缓存的数据的大小
@@ -200,59 +202,34 @@ class YYFTurtleStrategy(CtaTemplate):
             
             self.currentBucket = bucket
             # 如果已经有聚合5分钟K线
-            if self.NBar:
-                # 将最新分钟的数据更新到目前5分钟线中
-                NBar = self.NBar
-                NBar.high = max(NBar.high, bar.high)
-                NBar.low = min(NBar.low, bar.low)
-                NBar.close = bar.close
-                
+            if self.NBar:         
                 # 推送5分钟线数据
-                self.onNBar(NBar)
+                self.onNBar(self.NBar)
                 
-                # 清空5分钟线数据缓存
-                self.NBar = None
-            else:         #处理第一根bar
-                NBar = VtBarData()
                 
-                NBar.vtSymbol = bar.vtSymbol
-                NBar.symbol = bar.symbol
-                NBar.exchange = bar.exchange
-            
-                NBar.open = bar.open
-                NBar.high = bar.high
-                NBar.low = bar.low
-                NBar.close = bar.close
-            
-                NBar.date = bar.date
-                NBar.time = bar.time
-                NBar.datetime = bar.datetime 
-            
-                self.NBar = NBar                
+            # 清空5分钟线数据缓存
+            self.NBar = None
+        
+            NBar = VtBarData()                
+            NBar.vtSymbol = bar.vtSymbol
+            NBar.symbol = bar.symbol
+            NBar.exchange = bar.exchange
+        
+            NBar.open = bar.open
+            NBar.high = bar.high
+            NBar.low = bar.low
+            NBar.close = bar.close
+        
+            NBar.date = bar.date
+            NBar.time = bar.time
+            NBar.datetime = bucket
+        
+            self.NBar = NBar                
         else:
-            # 如果没有缓存则新建
-            if not self.NBar:
-                NBar = VtBarData()
-                
-                NBar.vtSymbol = bar.vtSymbol
-                NBar.symbol = bar.symbol
-                NBar.exchange = bar.exchange
-            
-                NBar.open = bar.open
-                NBar.high = bar.high
-                NBar.low = bar.low
-                NBar.close = bar.close
-            
-                NBar.date = bar.date
-                NBar.time = bar.time
-                NBar.datetime = bar.datetime 
-                
-                self.NBar = NBar
-            else:
-                NBar = self.NBar
-                NBar.high = max(NBar.high, bar.high)
-                NBar.low = min(NBar.low, bar.low)
-                NBar.close = bar.close    
+            NBar = self.NBar
+            NBar.high = max(NBar.high, bar.high)
+            NBar.low = min(NBar.low, bar.low)
+            NBar.close = bar.close    
     #----------------------------------------------------------------------
     def onNBar(self, bar):
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
@@ -276,23 +253,32 @@ class YYFTurtleStrategy(CtaTemplate):
             return
     
         # 计算指标数值
+        '''
         self.AvgTR = talib.ATR(self.highArray, 
                                   self.lowArray, 
                                   self.closeArray,
                                   self.ATRLength)
+        '''
+        
+        self.TR = talib.TRANGE(self.highArray, 
+                                  self.lowArray, 
+                                  self.closeArray)
+        
+        self.AvgTR = talib.SMA(self.TR,self.ATRLength)
+        
         self.N = self.AvgTR[-1]
 
         self.TurtleUnits = 1  #((self.TotalEquity)*self.RiskRatio/100) // (self.N * self.BigPointValue)
 
 
-        DonChianArray = self.closeArray[-self.fsLength-1:-1]
-        self.DonchianHi = talib.MAX(DonChianArray, self.boLength)[-1]
-        self.DonchianLo = talib.MIN(DonChianArray, self.boLength)[-1]
-        self.fsDonchianHi = talib.MAX(DonChianArray, self.fsLength)[-1]
-        self.fsDonchianLo = talib.MIN(DonChianArray, self.fsLength)[-1]
+        #DonChianArray = self.closeArray[-self.fsLength-1:-1]
+        self.DonchianHi = talib.MAX(self.highArray, self.boLength)[-1]
+        self.DonchianLo = talib.MIN(self.lowArray, self.boLength)[-1]
+        self.fsDonchianHi = talib.MAX(self.highArray, self.fsLength)[-1]
+        self.fsDonchianLo = talib.MIN(self.lowArray, self.fsLength)[-1]
 
-        self.ExitHighestPrice = talib.MAX(DonChianArray,self.teLength)[-1]
-        self.ExitLowestPrice = talib.MIN(DonChianArray,self.teLength)[-1]
+        self.ExitHighestPrice = talib.MAX(self.highArray,self.teLength)[-1]
+        self.ExitLowestPrice = talib.MIN(self.lowArray,self.teLength)[-1]
 
         if(self.TurtleUnits==0):
             self.TurtleUnits=1
@@ -312,6 +298,7 @@ class YYFTurtleStrategy(CtaTemplate):
         '''         
 
         # 当不使用过滤条件，或者使用过滤条件并且条件为PreBreakoutFailure为True进行后续操作
+        _entryPrice=self.preEntryPrice
         if(self.pos == 0 and ((not self.LastProfitableTradeFilter) or (self.PreBreakoutFailure))):
             orderID = self.buy(self.DonchianHi,self.TurtleUnits, True)
             self.orderList.append(orderID)                
@@ -320,32 +307,38 @@ class YYFTurtleStrategy(CtaTemplate):
             self.orderList.append(orderID)
         
         elif (self.pos > 0):
-            orderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
-            self.orderList.append(orderID) 
+            #self.exitOrderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            #self.orderList.append(self.exitOrderID) 
         
-            self.stopOrderID = self.sell(self.preEntryPrice - 2*self.N, self.TurtleUnits, True) #设置止损stop单
+            self.stopOrderID = self.sell(max(self.ExitLowestPrice,_entryPrice - 2*self.N), abs(self.pos), True) #设置止损stop单
             self.orderList.append(self.stopOrderID)            
         
-            orderID = self.buy(self.preEntryPrice + 0.5*self.N,self.TurtleUnits, True) # 设置加仓的stop单
-            self.orderList.append(orderID) 
+            for i in range(10):
+                orderID = self.buy(_entryPrice + 0.5*(i+1)*self.N,self.TurtleUnits, True) # 设置加仓的stop单
+                self.orderList.append(orderID)
             
         elif (self.pos < 0):
-            orderID = self.cover(self.ExitHighestPrice, abs(self.pos), True)  #设置全部退出的stop单
-            self.orderList.append(orderID)  
+            #self.exitOrderID = self.cover(self.ExitHighestPrice, abs(self.pos), True)  #设置全部退出的stop单
+            #self.orderList.append(self.exitOrderID)  
+            
+            exitPrice=min(self.ExitHighestPrice,_entryPrice + 2*self.N)
+            self.stopOrderID = self.cover(exitPrice, abs(self.pos), True) #设置止损stop单
+            print self.stopOrderID," exitPrice=",exitPrice," ExitHighestPrice=",self.ExitHighestPrice," _entryPrice=",_entryPrice
+            self.orderList.append(self.stopOrderID) 
+            
+            for i in range(0):
+                orderID = self.short(_entryPrice - 0.5*(i+1)*self.N , self.TurtleUnits, True) # 设置加仓的stop单
+                self.orderList.append(orderID)            
         
-            self.stopOrderID = self.cover(self.preEntryPrice + 2*self.N, self.TurtleUnits, True) #设置止损stop单
-            self.orderList.append(self.stopOrderID)               
-        
-            orderID = self.short(self.preEntryPrice - 0.5*self.N , self.TurtleUnits, True) # 设置加仓的stop单
-            self.orderList.append(orderID)            
-        
+        print bar.datetime," o=",bar.open," c=",bar.close," h=",bar.high," l=",bar.low
+
         print bar.datetime,"up=",self.DonchianHi," dn=",self.DonchianLo," lup=",self.fsDonchianHi,"ldn=",self.fsDonchianLo,"N=",self.N," high=", bar.high, "low=",bar.low,"preEntryPrice=",self.preEntryPrice,"ExitHighestPrice=",self.ExitHighestPrice,"ExitLowestPrice=",self.ExitLowestPrice,"olist=",self.orderList,"pos=",self.pos
         for o in self.orderList:
             print o 
         self.BarsSinceLastEntry += 1 
         self.putEvent()        
 
-    #----------------------------------------------------------------------
+    #-----------------------------------------------()-----------------------
     def onOrder(self, order):
         """收到委托变化推送（必须由用户继承实现）"""
         pass
@@ -354,6 +347,13 @@ class YYFTurtleStrategy(CtaTemplate):
     def onTrade(self, trade):
         # 多头开仓成交后，撤消空头委托
         print trade.tradeTime,"---onTrade----> pos=",self.pos," orderID=",trade.orderID, " stopOrderID=", trade.tradeTime,trade.stopOrderID,trade.price
+        
+        if trade.stopOrderID== self.stopOrderID:
+            self.PreBreakoutFailure = True
+            self.cancelOrder(self.exitOrderID)
+            
+        if trade.stopOrderID== self.exitOrderID:
+            self.cancelOrder(self.stopOrderID)
         
         if self.pos==0:
             self.cancelOrder(self.stopOrderID)
@@ -368,8 +368,7 @@ class YYFTurtleStrategy(CtaTemplate):
             self.SendOrderThisBar = True
             self.PreBreakoutFailure = False 
             
-            if trade.stopOrderID== self.stopOrderID:
-                self.PreBreakoutFailure = True
+            
                         
 
         # 反之同样
@@ -380,9 +379,7 @@ class YYFTurtleStrategy(CtaTemplate):
             self.preEntryPrice = self.myEntryPrice
             self.SendOrderThisBar = True
             self.PreBreakoutFailure = False  
-            
-            if trade.stopOrderID== self.stopOrderID:
-                self.PreBreakoutFailure = True            
+        
  
         
         # 发出状态更新事件
