@@ -29,10 +29,10 @@ from vnpy.trader.vtEvent import *
 from vnpy.trader.vtConstant import *
 from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
-from vnpy.trader.vtFunction import todayDate
+from vnpy.trader.vtFunction import todayDate, getJsonPath
 
-from vnpy.trader.app.ctaStrategy.ctaBase import *
-from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
+from .ctaBase import *
+from .strategy import STRATEGY_CLASS
 
 
 
@@ -41,8 +41,7 @@ from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 class CtaEngine(object):
     """CTA策略引擎"""
     settingFileName = 'CTA_setting.json'
-    path = os.path.abspath(os.path.dirname(__file__))
-    settingFileName = os.path.join(path, settingFileName)      
+    settingfilePath = getJsonPath(settingFileName, __file__)   
 
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine):
@@ -255,10 +254,15 @@ class CtaEngine(object):
         
         # 推送tick到对应的策略实例进行处理
         if tick.vtSymbol in self.tickStrategyDict:
-            # 添加datetime字段
-            if not tick.datetime:
-                tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
-            
+            # tick时间可能出现异常数据，使用try...except实现捕捉和过滤
+            try:
+                # 添加datetime字段
+                if not tick.datetime:
+                    tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+            except ValueError:
+                self.writeCtaLog(traceback.format_exc())
+                return
+                
             # 逐个推送到策略实例中
             l = self.tickStrategyDict[tick.vtSymbol]
             for strategy in l:
@@ -486,7 +490,7 @@ class CtaEngine(object):
     #----------------------------------------------------------------------
     def saveSetting(self):
         """保存策略配置"""
-        with open(self.settingFileName, 'w') as f:
+        with open(self.settingfilePath, 'w') as f:
             l = []
             
             for strategy in self.strategyDict.values():
@@ -501,7 +505,7 @@ class CtaEngine(object):
     #----------------------------------------------------------------------
     def loadSetting(self):
         """读取策略配置"""
-        with open(self.settingFileName) as f:
+        with open(self.settingfilePath) as f:
             l = json.load(f)
             
             for setting in l:
