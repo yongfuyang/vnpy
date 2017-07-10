@@ -406,8 +406,7 @@ class BacktestingEngine(object):
                 trade.tradeID = tradeID
                 trade.vtTradeID = tradeID
                 
-                if buyCross:
-                    
+                if buyCross:                    
                     self.strategy.pos += so.volume
                     trade.price = max(bestCrossPrice, so.price)
                 else:
