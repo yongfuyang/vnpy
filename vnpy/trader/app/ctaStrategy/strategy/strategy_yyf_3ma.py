@@ -26,6 +26,9 @@ class ThreeEmaStrategy(CtaTemplate):
     className = 'ThreeEmaStrategy'
     author = u'yfyang'
     
+    timeFrame = 30
+    currentBucket = None    
+    
     # 策略参数
     fastK = 5     # 快速EMA参数
     slowK = 50     # 慢速EMA参数
@@ -45,13 +48,16 @@ class ThreeEmaStrategy(CtaTemplate):
     slowMa = []             # 与上面相同
     longMa = []             # 与上面相同
     
+    initCapital = 1000000        
+    
     # 参数列表，保存了参数的名称
     paramList = ['name',
                  'className',
                  'author',
                  'vtSymbol',
                  'fastK',
-                 'slowK']    
+                 'slowK',
+                 'initCapital']    
     
     # 变量列表，保存了变量的名称
     varList = ['inited',
@@ -69,7 +75,9 @@ class ThreeEmaStrategy(CtaTemplate):
         # 策略时方便（更多是个编程习惯的选择）
         self.fastMa = []
         self.slowMa = []
-        self.longMa = []
+        self.longMa = []        
+        
+        self.totalEquity = self.initCapital
         
     #----------------------------------------------------------------------
     def onInit(self):
@@ -131,60 +139,76 @@ class ThreeEmaStrategy(CtaTemplate):
             bar.high = max(bar.high, tick.lastPrice)
             bar.low = min(bar.low, tick.lastPrice)
             bar.close = tick.lastPrice
-        
+    
     #----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
-        # 如果当前是一个5分钟走完
-        if bar.datetime.minute % 5 == 0:
-            # 如果已经有聚合5分钟K线
-            if self.fiveBar:
-                # 将最新分钟的数据更新到目前5分钟线中
-                fiveBar = self.fiveBar
-                fiveBar.high = max(fiveBar.high, bar.high)
-                fiveBar.low = min(fiveBar.low, bar.low)
-                fiveBar.close = bar.close
-                
-                # 推送5分钟线数据
-                self.onFiveBar(fiveBar)
-                
-                # 清空5分钟线数据缓存
-                self.fiveBar = None
-        else:
-            # 如果没有缓存则新建
-            if not self.fiveBar:
-                fiveBar = CtaBarData()
-                
-                fiveBar.vtSymbol = bar.vtSymbol
-                fiveBar.symbol = bar.symbol
-                fiveBar.exchange = bar.exchange
-            
-                fiveBar.open = bar.open
-                fiveBar.high = bar.high
-                fiveBar.low = bar.low
-                fiveBar.close = bar.close
-            
-                fiveBar.date = bar.date
-                fiveBar.time = bar.time
-                fiveBar.datetime = bar.datetime 
-                
-                self.fiveBar = fiveBar
-            else:
-                fiveBar = self.fiveBar
-                fiveBar.high = max(fiveBar.high, bar.high)
-                fiveBar.low = min(fiveBar.low, bar.low)
-                fiveBar.close = bar.close
-    
+        # 如果当前是一个5分钟走完        
 
+        time = bar.datetime #datetime.datetime.strptime(bar.datetime, '%Y%m%d %H:%M:%S')
+                #
+        year = time.year
+        month = time.month
+        day = time.day
+        hour = time.hour
+        minute = time.minute
+
+        if self.timeFrame == 0: # 1day
+            if hour >= 20:
+                bucket =  datetime.datetime(year, month, day) + timedelta(days=1)
+                
+            else:
+                
+                bucket =  datetime.datetime(year, month, day)
+        else :
+            bucket =  datetime.datetime(year, month, day, hour, minute-minute%self.timeFrame)
+
+
+        if self.currentBucket != bucket:
+            
+            self.currentBucket = bucket
+            # 如果已经有聚合5分钟K线
+            if self.NBar:         
+                # 推送5分钟线数据
+                self.onNBar(self.NBar)
+                
+                
+            # 清空5分钟线数据缓存
+            self.NBar = None
+        
+            NBar = VtBarData()                
+            NBar.vtSymbol = bar.vtSymbol
+            NBar.symbol = bar.symbol
+            NBar.exchange = bar.exchange
+        
+            NBar.open = bar.open
+            NBar.high = bar.high
+            NBar.low = bar.low
+            NBar.close = bar.close
+        
+            NBar.date = bar.date
+            NBar.time = bar.time
+            NBar.datetime = bucket
+        
+            self.NBar = NBar                
+        else:
+            NBar = self.NBar
+            NBar.high = max(NBar.high, bar.high)
+            NBar.low = min(NBar.low, bar.low)
+            NBar.close = bar.close        
+   
     #----------------------------------------------------------------------
-    def onFiveBar(self, bar):
+    def onNBar(self, bar):
         """收到5分钟K线"""
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
-        '''
+        d=self.ctaEngine.calculateBacktestingResult()
+        self.totalEquity=self.totalEquity+d['capital']
+        
+        
         for orderID in self.orderList:
             self.cancelOrder(orderID)
-        self.orderList = []
-        '''
+        self.orderList = []  
+        
     
         # 保存K线数据
         self.closeArray[0:self.bufferSize-1] = self.closeArray[1:self.bufferSize]    
@@ -196,36 +220,36 @@ class ThreeEmaStrategy(CtaTemplate):
     
         # 计算指标数值
 
-        self.fastMa = talib.MA(self.closeArray, self.fastK)
-        self.slowMa = talib.MA(self.closeArray, self.slowK)
-        self.longMa = talib.MA(self.closeArray, self.longK)
+        self.fastMa = talib.SMA(self.closeArray, self.fastK)
+        self.slowMa = talib.SMA(self.closeArray, self.slowK)
+        self.longMa = talib.SMA(self.closeArray, self.longK)
 
     
         # 判断买卖
-        crossOver = self.fastMa[-1]>self.slowMa[-1] and self.fastMa[-2]<self.slowMa[-2] and bar.close>self.longMa[-1]     # 金叉上穿
-        crossBelow = self.fastMa[-1]<self.slowMa[-1] and self.fastMa[-2]>self.slowMa[-2] and bar.close<self.longMa[-1]   # 死叉下穿
+        crossOver = self.fastMa[-1]>self.slowMa[-1] and self.fastMa[-2]<self.slowMa[-2]      # 金叉上穿
+        crossBelow = self.fastMa[-1]<self.slowMa[-1] and self.fastMa[-2]>self.slowMa[-2] # 死叉下穿
         
         # 金叉和死叉的条件是互斥
         # 所有的委托均以K线收盘价委托（这里有一个实盘中无法成交的风险，考虑添加对模拟市价单类型的支持）
         if crossOver:
             # 如果金叉时手头没有持仓，则直接做多
-            if self.pos == 0:
-                print str(bar.date), str(bar.time) , "\t long:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+            if self.pos == 0 and bar.close>self.longMa[-1]:
+                print str(bar.date), str(bar.time) , "\t long :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
                 self.buy(bar.close, 1)
             # 如果有空头持仓，则先平空，再做多
             elif self.pos < 0:
                 self.cover(bar.close, 1)
-                print str(bar.date), str(bar.time) , "\t cover and long:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                self.buy(bar.close, 1)
+                print str(bar.date), str(bar.time) , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+
         # 死叉和金叉相反
         elif crossBelow:
-            if self.pos == 0:
+            if self.pos == 0 and bar.close<self.longMa[-1]:
                 self.short(bar.close, 1)
                 print str(bar.date), str(bar.time) , "\t short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
             elif self.pos > 0:
                 self.sell(bar.close, 1)
-                print str(bar.date), str(bar.time) , "\t sell and short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                self.short(bar.close, 1)
+                print str(bar.date), str(bar.time) , "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+
                 
         # 发出状态更新事件
         self.putEvent()
@@ -241,6 +265,7 @@ class ThreeEmaStrategy(CtaTemplate):
     def onTrade(self, trade):
         """收到成交推送（必须由用户继承实现）"""
         # 对于无需做细粒度委托控制的策略，可以忽略onOrder
+      
         pass
     
     
@@ -348,6 +373,7 @@ class OrderManagementDemoStrategy(CtaTemplate):
     def onTrade(self, trade):
         """收到成交推送（必须由用户继承实现）"""
         # 对于无需做细粒度委托控制的策略，可以忽略onOrder
+        
         pass
 
 

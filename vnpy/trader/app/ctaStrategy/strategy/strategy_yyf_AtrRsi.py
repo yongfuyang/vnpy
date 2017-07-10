@@ -10,12 +10,12 @@
 
 """
 
-
-from ctaBase import *
-from ctaTemplate import CtaTemplate
-
 import talib
 import numpy as np
+
+from vnpy.trader.vtObject import VtBarData
+from vnpy.trader.vtConstant import EMPTY_STRING
+from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
 
 
 ########################################################################
@@ -23,6 +23,9 @@ class AtrRsiStrategy(CtaTemplate):
     """结合ATR和RSI指标的一个分钟线交易策略"""
     className = 'AtrRsiStrategy'
     author = u'用Python的交易员'
+    
+    timeFrame = 30
+    currentBucket = None    
 
     # 策略参数
     atrLength = 22          # 计算ATR指标的窗口数   
@@ -125,7 +128,7 @@ class AtrRsiStrategy(CtaTemplate):
             if self.bar:
                 self.onBar(self.bar)
 
-            bar = CtaBarData()              
+            bar = VtBarData()              
             bar.vtSymbol = tick.vtSymbol
             bar.symbol = tick.symbol
             bar.exchange = tick.exchange
@@ -150,6 +153,63 @@ class AtrRsiStrategy(CtaTemplate):
 
     #----------------------------------------------------------------------
     def onBar(self, bar):
+        """收到Bar推送（必须由用户继承实现）"""
+        # 如果当前是一个5分钟走完
+    
+    
+        time = bar.datetime #datetime.datetime.strptime(bar.datetime, '%Y%m%d %H:%M:%S')
+            #
+        year = time.year
+        month = time.month
+        day = time.day
+        hour = time.hour
+        minute = time.minute
+    
+        if self.timeFrame == 0: # 1day
+            if hour >= 20:
+                bucket =  datetime.datetime(year, month, day) + timedelta(days=1)
+    
+            else:
+    
+                bucket =  datetime.datetime(year, month, day)
+        else :
+            bucket =  datetime.datetime(year, month, day, hour, minute-minute%self.timeFrame)
+    
+    
+        if self.currentBucket != bucket:
+    
+            self.currentBucket = bucket
+            # 如果已经有聚合5分钟K线
+            if self.NBar:         
+                # 推送5分钟线数据
+                self.onNBar(self.NBar)
+    
+    
+            # 清空5分钟线数据缓存
+            self.NBar = None
+    
+            NBar = VtBarData()                
+            NBar.vtSymbol = bar.vtSymbol
+            NBar.symbol = bar.symbol
+            NBar.exchange = bar.exchange
+    
+            NBar.open = bar.open
+            NBar.high = bar.high
+            NBar.low = bar.low
+            NBar.close = bar.close
+    
+            NBar.date = bar.date
+            NBar.time = bar.time
+            NBar.datetime = bucket
+    
+            self.NBar = NBar                
+        else:
+            NBar = self.NBar
+            NBar.high = max(NBar.high, bar.high)
+            NBar.low = min(NBar.low, bar.low)
+            NBar.close = bar.close        
+    #----------------------------------------------------------------------
+    def onNBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
         for orderID in self.orderList:
@@ -236,6 +296,8 @@ class AtrRsiStrategy(CtaTemplate):
     def onTrade(self, trade):
         # 发出状态更新事件
         self.putEvent()
+
+
 
 if __name__ == '__main__':
     # 提供直接双击回测的功能
