@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 """
-基于King Keltner通道的交易策略，适合用在股指上，
+基于turtle的交易策略，适合用在股指上，
 展示了OCO委托和5分钟K线聚合的方法。
 
 注意事项：
@@ -97,7 +97,7 @@ class YYFTurtleStrategy(CtaTemplate):
                  'className',
                  'author',
                  'vtSymbol',
-                 'kkLength',
+                 'ATRLength',
                  'kkDev',
                  'atrLength',
                  'timeFrame']    
@@ -310,10 +310,12 @@ class YYFTurtleStrategy(CtaTemplate):
             #self.exitOrderID = self.sell(self.ExitLowestPrice, abs(self.pos), True)  #设置全部退出的stop单
             #self.orderList.append(self.exitOrderID) 
         
-            self.stopOrderID = self.sell(max(self.ExitLowestPrice,_entryPrice - 2*self.N), abs(self.pos), True) #设置止损stop单
+            exitPrice=max(self.ExitLowestPrice,_entryPrice - 2*self.N)
+            self.stopOrderID = self.sell(exitPrice, abs(self.pos), True) #设置止损stop单
+            print self.stopOrderID," exitPrice=",exitPrice," ExitHighestPrice=",self.ExitHighestPrice," _entryPrice=",_entryPrice
             self.orderList.append(self.stopOrderID)            
         
-            for i in range(10):
+            for i in range(1):
                 orderID = self.buy(_entryPrice + 0.5*(i+1)*self.N,self.TurtleUnits, True) # 设置加仓的stop单
                 self.orderList.append(orderID)
             
@@ -326,15 +328,14 @@ class YYFTurtleStrategy(CtaTemplate):
             print self.stopOrderID," exitPrice=",exitPrice," ExitHighestPrice=",self.ExitHighestPrice," _entryPrice=",_entryPrice
             self.orderList.append(self.stopOrderID) 
             
-            for i in range(0):
+            for i in range(1):
                 orderID = self.short(_entryPrice - 0.5*(i+1)*self.N , self.TurtleUnits, True) # 设置加仓的stop单
                 self.orderList.append(orderID)            
         
         print bar.datetime," o=",bar.open," c=",bar.close," h=",bar.high," l=",bar.low
 
         print bar.datetime,"up=",self.DonchianHi," dn=",self.DonchianLo," lup=",self.fsDonchianHi,"ldn=",self.fsDonchianLo,"N=",self.N," high=", bar.high, "low=",bar.low,"preEntryPrice=",self.preEntryPrice,"ExitHighestPrice=",self.ExitHighestPrice,"ExitLowestPrice=",self.ExitLowestPrice,"olist=",self.orderList,"pos=",self.pos
-        for o in self.orderList:
-            print o 
+
         self.BarsSinceLastEntry += 1 
         self.putEvent()        
 
