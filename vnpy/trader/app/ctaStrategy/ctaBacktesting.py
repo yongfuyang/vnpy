@@ -297,7 +297,7 @@ class BacktestingEngine(object):
         self.stopOrderDict[stopOrderID] = so
         self.workingStopOrderDict[stopOrderID] = so
         
-        print "sendStopOrder:",so.stopOrderID,so.price,so.volume,so.direction,so.offset
+        print "sendStopOrder:",so.stopOrderID,so.price,price,so.volume,so.direction,so.offset
         return stopOrderID
     
     #----------------------------------------------------------------------
@@ -393,6 +393,8 @@ class BacktestingEngine(object):
             # 判断是否会成交
             buyCross = so.direction==DIRECTION_LONG and so.price<=buyCrossPrice
             sellCross = so.direction==DIRECTION_SHORT and so.price>=sellCrossPrice
+            
+            #print self.bar.datetime,sellCrossPrice,buyCrossPrice,bestCrossPrice,so.price,so.direction
             
             # 如果发生了成交
             if buyCross or sellCross:
