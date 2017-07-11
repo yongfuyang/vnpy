@@ -8,8 +8,7 @@ import talib
 
 def SATR(highArray,lowArray,closeArray,atrLength):
 	TR = talib.TRANGE(highArray,lowArray,closeArray)	
-	SATR= talib.SMA(TR,atrLength)	
-	return SATR
+	return talib.SMA(TR,atrLength)	
 
 
     

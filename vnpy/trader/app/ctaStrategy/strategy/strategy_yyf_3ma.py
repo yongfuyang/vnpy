@@ -16,10 +16,13 @@ import talib
 import numpy as np
 
 import math
+import datetime
+import vnpy.trader.tools as tools
 
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
+
 
 
 ########################################################################
@@ -29,7 +32,8 @@ class ThreeEmaStrategy(CtaTemplate):
     author = u'yfyang'
     
     timeFrame = 30
-    currentBucket = None    
+    currentBucket = None 
+    NBar = None              # N分钟K线对象
     
     # 策略参数
     fastK = 5     # 快速EMA参数
@@ -40,19 +44,24 @@ class ThreeEmaStrategy(CtaTemplate):
     # 策略变量
     bar = None                  # 1分钟K线对象
     barMinute = EMPTY_STRING    # K线当前的分钟
-    fiveBar = None              # 1分钟K线对象
 
     bufferSize = 201                    # 需要缓存的数据的大小
     bufferCount = 0                     # 目前已经缓存了的数据的计数
-    closeArray = np.zeros(bufferSize)   # K线收盘价的数组    
+    closeArray = np.zeros(bufferSize)   # K线收盘价的数组  
+    highArray = np.zeros(bufferSize)
+    lowArray = np.zeros(bufferSize)
     
     fastMa = []             # 快速EMA均线数组
     slowMa = []             # 与上面相同
     longMa = []             # 与上面相同
     
     initCapital = 1000000
-    mmPercent=0.3
+    riskPercent=0.01
+    stopAtrs=5
+    atrLength=14
+    atr=None
     
+    orderList=[]
     # 参数列表，保存了参数的名称
     paramList = ['name',
                  'className',
@@ -60,8 +69,8 @@ class ThreeEmaStrategy(CtaTemplate):
                  'vtSymbol',
                  'fastK',
                  'slowK',
-                 'initCapital',
-                 'mmPercent']
+                 'initCapital','timeFrame',
+                 'riskPercent','stopAtrs','atrLength']
     
     # 变量列表，保存了变量的名称
     varList = ['inited',
@@ -206,11 +215,8 @@ class ThreeEmaStrategy(CtaTemplate):
         """收到5分钟K线"""
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
         d=self.ctaEngine.calculateBacktestingResult()
-        self.totalEquity=self.totalEquity+d['capital']
-        _lots=math.floor(self.totalEquity*mmPercent)
-        if _lots==0:
-            _lots=1
-        
+        if d.has_key('capital'):
+            self.totalEquity=self.totalEquity+d['capital']
         
         for orderID in self.orderList:
             self.cancelOrder(orderID)
@@ -218,8 +224,15 @@ class ThreeEmaStrategy(CtaTemplate):
         
     
         # 保存K线数据
-        self.closeArray[0:self.bufferSize-1] = self.closeArray[1:self.bufferSize]    
+        self.closeArray[0:self.bufferSize-1] = self.closeArray[1:self.bufferSize]
+        self.highArray[0:self.bufferSize-1] = self.highArray[1:self.bufferSize]
+        self.lowArray[0:self.bufferSize-1] = self.lowArray[1:self.bufferSize]
+    
         self.closeArray[-1] = bar.close
+        self.highArray[-1] = bar.high
+        self.lowArray[-1] = bar.low
+    
+    
     
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
@@ -230,8 +243,14 @@ class ThreeEmaStrategy(CtaTemplate):
         self.fastMa = talib.SMA(self.closeArray, self.fastK)
         self.slowMa = talib.SMA(self.closeArray, self.slowK)
         self.longMa = talib.SMA(self.closeArray, self.longK)
-
-    
+        
+        self.atr=tools.SATR(self.highArray, self.lowArray, self.closeArray, self.atrLength)
+        
+        _lots=math.floor(self.totalEquity*self.riskPercent/(self.ctaEngine.size*self.stopAtrs*self.atr[-1]))
+        if _lots==0:
+            _lots=1        
+        
+        
         # 判断买卖
         crossOver = self.fastMa[-1]>self.slowMa[-1] and self.fastMa[-2]<self.slowMa[-2]      # 金叉上穿
         crossBelow = self.fastMa[-1]<self.slowMa[-1] and self.fastMa[-2]>self.slowMa[-2] # 死叉下穿
@@ -272,9 +291,13 @@ class ThreeEmaStrategy(CtaTemplate):
     def onTrade(self, trade):
         """收到成交推送（必须由用户继承实现）"""
         # 对于无需做细粒度委托控制的策略，可以忽略onOrder
-      
+        print trade.tradeTime,"---onTrade----> pos=",self.pos," orderID=",trade.orderID, " stopOrderID=", trade.tradeTime,trade.stopOrderID,trade.price
         pass
     
+    #----------------------------------------------------------------------
+    def onStopOrder(self, so):
+        """停止单推送"""
+        pass     
     
 ########################################################################################
 class OrderManagementDemoStrategy(CtaTemplate):
@@ -382,7 +405,10 @@ class OrderManagementDemoStrategy(CtaTemplate):
         # 对于无需做细粒度委托控制的策略，可以忽略onOrder
         
         pass
-
+    #----------------------------------------------------------------------
+    def onStopOrder(self, so):
+        """停止单推送"""
+        pass 
 
     
 if __name__ == '__main__':
