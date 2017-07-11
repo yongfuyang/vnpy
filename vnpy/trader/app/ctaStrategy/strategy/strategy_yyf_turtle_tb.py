@@ -404,7 +404,11 @@ class YYFTurtleStrategy(CtaTemplate):
         self.orderList.append(self.buyOrderID)
         self.orderList.append(self.shortOrderID)
 
-
+    #----------------------------------------------------------------------
+    def onStopOrder(self, so):
+        """停止单推送"""
+        pass    
+    
 if __name__ == '__main__':
     # 提供直接双击回测的功能
     # 导入PyQt4的包是为了保证matplotlib使用PyQt4而不是PySide，防止初始化出错

@@ -16,7 +16,7 @@ settingFileName = "VT_setting.json"
 settingFilePath = getJsonPath(settingFileName, __file__)
 
 try:
-    f = file(settingFileName)
+    f = file(settingFilePath)
     globalSetting = json.load(f)
 except:
     traceback.print_exc()

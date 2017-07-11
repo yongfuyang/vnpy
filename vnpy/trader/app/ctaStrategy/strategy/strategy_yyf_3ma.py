@@ -15,6 +15,8 @@
 import talib
 import numpy as np
 
+import math
+
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
@@ -48,7 +50,8 @@ class ThreeEmaStrategy(CtaTemplate):
     slowMa = []             # 与上面相同
     longMa = []             # 与上面相同
     
-    initCapital = 1000000        
+    initCapital = 1000000
+    mmPercent=0.3
     
     # 参数列表，保存了参数的名称
     paramList = ['name',
@@ -57,7 +60,8 @@ class ThreeEmaStrategy(CtaTemplate):
                  'vtSymbol',
                  'fastK',
                  'slowK',
-                 'initCapital']    
+                 'initCapital',
+                 'mmPercent']
     
     # 变量列表，保存了变量的名称
     varList = ['inited',
@@ -203,6 +207,9 @@ class ThreeEmaStrategy(CtaTemplate):
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
         d=self.ctaEngine.calculateBacktestingResult()
         self.totalEquity=self.totalEquity+d['capital']
+        _lots=math.floor(self.totalEquity*mmPercent)
+        if _lots==0:
+            _lots=1
         
         
         for orderID in self.orderList:
@@ -234,21 +241,21 @@ class ThreeEmaStrategy(CtaTemplate):
         if crossOver:
             # 如果金叉时手头没有持仓，则直接做多
             if self.pos == 0 and bar.close>self.longMa[-1]:
-                print str(bar.date), str(bar.time) , "\t long :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                self.buy(bar.close, 1)
+                print bar.datetime , "\t long :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+                self.buy(bar.close, _lots)
             # 如果有空头持仓，则先平空，再做多
             elif self.pos < 0:
-                self.cover(bar.close, 1)
-                print str(bar.date), str(bar.time) , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+                self.cover(bar.close, abs(self.pos))
+                print bar.datetime , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
 
         # 死叉和金叉相反
         elif crossBelow:
             if self.pos == 0 and bar.close<self.longMa[-1]:
-                self.short(bar.close, 1)
-                print str(bar.date), str(bar.time) , "\t short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+                self.short(bar.close, _lots)
+                print bar.datetime, "\t short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
             elif self.pos > 0:
-                self.sell(bar.close, 1)
-                print str(bar.date), str(bar.time) , "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+                self.sell(bar.close, abs(self.pos))
+                print bar.datetime, "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
 
                 
         # 发出状态更新事件
