@@ -145,14 +145,12 @@ class CtaTemplate(object):
                             else:
                                 pass                    
     
-        i=0        
-        while len(self.tradeList)>0:
-            if self.tradeList[0].volume==0:
-                self.tradeList.pop(0)
-            else:
-                i=i+1
-            if i==len(self.tradeList):
-                break
+        _list=[]
+        for trade in self.tradeList:
+            if trade.volume!=0:
+                _list.append(trade)
+                
+        self.tradeList=_list
             
         
         # 检查是否有交易
