@@ -6,7 +6,7 @@
 使用DR_setting.json来配置需要收集的合约，以及主力合约代码。
 '''
 
-#import json
+import json
 import csv
 import os
 import copy
@@ -130,14 +130,7 @@ class DrEngine(object):
 
                 # 注意这里的vtSymbol对于IB和LTS接口，应该后缀.交易所
                 for activeSymbol, vtSymbol in d.items():
-                    self.activeSymbolDict[vtSymbol] = activeSymbol
-
-            # 启动数据插入线程
-            self.start()
-
-            # 注册事件监听
-            self.registerEvent()            
-        
+                    self.activeSymbolDict[vtSymbol] = activeSymbol    
     
     ##----------------------------------------------------------------------
     #def loadCsvSetting(self):
@@ -247,7 +240,7 @@ class DrEngine(object):
                 
                 bar.date = tick.date
                 bar.time = tick.time
-                bar.datetime = tick.datetime
+                bar.datetime = tick.datetime.replace(second=0, microsecond=0)
                 bar.volume = tick.volume
                 bar.openInterest = tick.openInterest        
             # 否则继续累加新的K线
