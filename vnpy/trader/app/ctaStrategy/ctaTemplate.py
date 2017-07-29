@@ -42,6 +42,204 @@ class CtaTemplate(object):
     varList = ['inited',
                'trading',
                'pos']
+    
+    tradeList = []   
+
+    #----------------------------------------------------------------------
+    def calculateTradeResult(self):
+        
+        resultList = []             # 交易结果列表
+
+        longTrade = []              # 未平仓的多头交易
+        shortTrade = []             # 未平仓的空头交易
+    
+        tradeTimeList = []          # 每笔成交时间戳
+        posList = [0]               # 每笔成交后的持仓情况        
+    
+        for trade in self.tradeList:
+            # 多头交易
+            if trade.direction == DIRECTION_LONG:
+                # 如果尚无空头交易
+                if not shortTrade:
+                    longTrade.append(trade)
+                # 当前多头交易为平空
+                else:
+                    while True:
+                        entryTrade = shortTrade[0]
+                        exitTrade = trade
+    
+                        # 清算开平仓交易
+                        closedVolume = min(exitTrade.volume, entryTrade.volume)
+                        result = TradingResult(entryTrade.price, entryTrade.dt, 
+                                               exitTrade.price, exitTrade.dt,
+                                               -closedVolume, self.ctaEngine.rate, self.ctaEngine.slippage, self.ctaEngine.size)
+                        resultList.append(result)
+    
+                        posList.extend([-1,0])
+                        tradeTimeList.extend([result.entryDt, result.exitDt])
+    
+                        # 计算未清算部分
+                        entryTrade.volume -= closedVolume
+                        exitTrade.volume -= closedVolume
+    
+                        # 如果开仓交易已经全部清算，则从列表中移除
+                        if not entryTrade.volume:
+                            shortTrade.pop(0)
+    
+                        # 如果平仓交易已经全部清算，则退出循环
+                        if not exitTrade.volume:
+                            break
+    
+                        # 如果平仓交易未全部清算，
+                        if exitTrade.volume:
+                            # 且开仓交易已经全部清算完，则平仓交易剩余的部分
+                            # 等于新的反向开仓交易，添加到队列中
+                            if not shortTrade:
+                                longTrade.append(exitTrade)
+                                break
+                            # 如果开仓交易还有剩余，则进入下一轮循环
+                            else:
+                                pass
+    
+            # 空头交易        
+            else:
+                # 如果尚无多头交易
+                if not longTrade:
+                    shortTrade.append(trade)
+                # 当前空头交易为平多
+                else:                    
+                    while True:
+                        entryTrade = longTrade[0]
+                        exitTrade = trade
+    
+                        # 清算开平仓交易
+                        closedVolume = min(exitTrade.volume, entryTrade.volume)
+                        result = TradingResult(entryTrade.price, entryTrade.dt, 
+                                               exitTrade.price, exitTrade.dt,
+                                               closedVolume, self.ctaEngine.rate, self.ctaEngine.slippage, self.ctaEngine.size)
+                        resultList.append(result)
+    
+                        posList.extend([1,0])
+                        tradeTimeList.extend([result.entryDt, result.exitDt])
+    
+                        # 计算未清算部分
+                        entryTrade.volume -= closedVolume
+                        exitTrade.volume -= closedVolume
+    
+                        # 如果开仓交易已经全部清算，则从列表中移除
+                        if not entryTrade.volume:
+                            longTrade.pop(0)
+    
+                        # 如果平仓交易已经全部清算，则退出循环
+                        if not exitTrade.volume:
+                            break
+    
+                        # 如果平仓交易未全部清算，
+                        if exitTrade.volume:
+                            # 且开仓交易已经全部清算完，则平仓交易剩余的部分
+                            # 等于新的反向开仓交易，添加到队列中
+                            if not longTrade:
+                                shortTrade.append(exitTrade)
+                                break
+                            # 如果开仓交易还有剩余，则进入下一轮循环
+                            else:
+                                pass                    
+    
+        i=0        
+        while len(self.tradeList)>0:
+            if self.tradeList[0].volume==0:
+                self.tradeList.pop(0)
+            else:
+                i=i+1
+            if i==len(self.tradeList):
+                break
+            
+        
+        # 检查是否有交易
+        if not resultList:
+            #self.output(u'无交易结果')
+            return {}
+    
+        # 然后基于每笔交易的结果，我们可以计算具体的盈亏曲线和最大回撤等        
+        capital = 0             # 资金
+        maxCapital = 0          # 资金最高净值
+        drawdown = 0            # 回撤
+    
+        totalResult = 0         # 总成交数量
+        totalTurnover = 0       # 总成交金额（合约面值）
+        totalCommission = 0     # 总手续费
+        totalSlippage = 0       # 总滑点
+    
+        timeList = []           # 时间序列
+        pnlList = []            # 每笔盈亏序列
+        capitalList = []        # 盈亏汇总的时间序列
+        drawdownList = []       # 回撤的时间序列
+    
+        winningResult = 0       # 盈利次数
+        losingResult = 0        # 亏损次数		
+        totalWinning = 0        # 总盈利金额		
+        totalLosing = 0         # 总亏损金额        
+    
+    
+        for result in resultList:
+            capital += result.pnl
+            maxCapital = max(capital, maxCapital)
+            drawdown = capital - maxCapital
+    
+            pnlList.append(result.pnl)
+            timeList.append(result.exitDt)      # 交易的时间戳使用平仓时间
+            capitalList.append(capital)
+            drawdownList.append(drawdown)
+    
+            totalResult += 1
+            totalTurnover += result.turnover
+            totalCommission += result.commission
+            totalSlippage += result.slippage
+    
+            if result.pnl >= 0:
+                winningResult += 1
+                totalWinning += result.pnl
+            else:
+                losingResult += 1
+                totalLosing += result.pnl
+    
+    
+        # 计算盈亏相关数据
+        winningRate = winningResult/totalResult*100         # 胜率
+    
+        averageWinning = 0                                  # 这里把数据都初始化为0
+        averageLosing = 0
+        profitLossRatio = 0
+    
+        if winningResult:
+            averageWinning = totalWinning/winningResult     # 平均每笔盈利
+        if losingResult:
+            averageLosing = totalLosing/losingResult        # 平均每笔亏损
+        if averageLosing:
+            profitLossRatio = -averageWinning/averageLosing # 盈亏比
+    
+        # 返回回测结果
+        d = {}
+        d['capital'] = capital
+        d['maxCapital'] = maxCapital
+        d['drawdown'] = drawdown
+        d['totalResult'] = totalResult
+        d['totalTurnover'] = totalTurnover
+        d['totalCommission'] = totalCommission
+        d['totalSlippage'] = totalSlippage
+        d['timeList'] = timeList
+        d['pnlList'] = pnlList
+        d['capitalList'] = capitalList
+        d['drawdownList'] = drawdownList
+        d['winningRate'] = winningRate
+        d['averageWinning'] = averageWinning
+        d['averageLosing'] = averageLosing
+        d['profitLossRatio'] = profitLossRatio
+        d['posList'] = posList
+        d['tradeTimeList'] = tradeTimeList
+    
+        return d
+            
 
     #----------------------------------------------------------------------
     def __init__(self, ctaEngine, setting):
@@ -176,8 +374,30 @@ class CtaTemplate(object):
     def getEngineType(self):
         """查询当前运行的环境"""
         return self.ctaEngine.engineType
-    
 
+########################################################################
+class TradingResult(object):
+    """每笔交易的结果"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, entryPrice, entryDt, exitPrice, 
+                 exitDt, volume, rate, slippage, size):
+        """Constructor"""
+        self.entryPrice = entryPrice    # 开仓价格
+        self.exitPrice = exitPrice      # 平仓价格
+        
+        self.entryDt = entryDt          # 开仓时间datetime    
+        self.exitDt = exitDt            # 平仓时间
+        
+        self.volume = volume    # 交易数量（+/-代表方向）
+        
+        self.turnover = (self.entryPrice+self.exitPrice)*size*abs(volume)   # 成交金额
+        self.commission = self.turnover*rate                                # 手续费成本
+        self.slippage = slippage*2*size*abs(volume)                         # 滑点成本
+        self.pnl = ((self.exitPrice - self.entryPrice) * volume * size 
+                    - self.commission - self.slippage)                      # 净盈亏
+
+    
 ########################################################################
 class TargetPosTemplate(CtaTemplate):
     """
