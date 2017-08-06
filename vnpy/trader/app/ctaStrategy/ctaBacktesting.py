@@ -530,7 +530,7 @@ class BacktestingEngine(object):
         self.stopOrderDict[stopOrderID] = so
         self.workingStopOrderDict[stopOrderID] = so
         
-        print "sendStopOrder:",so.stopOrderID,so.price,price,so.volume,so.direction,so.offset
+        #print "sendStopOrder:",so.stopOrderID,so.price,price,so.volume,so.direction,so.offset
         # 推送停止单初始更新
         self.strategy.onStopOrder(so)        
         
@@ -584,7 +584,7 @@ class BacktestingEngine(object):
         """
         计算回测结果
         """
-        #self.output(u'计算回测结果')
+        self.output(u'计算回测结果')
         
         # 首先基于回测后的成交记录，计算每笔交易的盈亏
         resultList = []             # 交易结果列表
@@ -706,7 +706,7 @@ class BacktestingEngine(object):
         
         # 检查是否有交易
         if not resultList:
-            #self.output(u'无交易结果')
+            self.output(u'无交易结果')
             return {}
         
         # 然后基于每笔交易的结果，我们可以计算具体的盈亏曲线和最大回撤等        
