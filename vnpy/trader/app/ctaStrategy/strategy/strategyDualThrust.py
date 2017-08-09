@@ -18,7 +18,7 @@ class DualThrustStrategy(CtaTemplate):
     author = u'用Python的交易员'
 
     # 策略参数
-    fixedSize = 100
+    fixedSize = 1
     k1 = 0.4
     k2 = 0.6
 
