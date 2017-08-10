@@ -12,5 +12,5 @@ from vnpy.trader.app.ctaStrategy.ctaHistoryData import TBPLUSDataImport
 if __name__ == '__main__':
     #loadMcCsv('IF0000_1min.csv', MINUTE_DB_NAME, 'IF0000')
     #loadMcCsv('rb888_1m.csv', MINUTE_DB_NAME, 'rb0000')
-    TBPLUSDataImport('rb8888_tbplus.csv','.','.',to5m=False, to15m=False, to30m=False, toH1=False, toD1=False)
+    TBPLUSDataImport('rb8888_tbplus.csv','.','./backup',to5m=False, to15m=False, to30m=False, toH1=False, toD1=False)
 

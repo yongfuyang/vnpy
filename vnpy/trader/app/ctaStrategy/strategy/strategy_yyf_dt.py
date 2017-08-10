@@ -157,11 +157,11 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.barList.pop(0)
         lastBar = self.barList[-2]
         
-        # 新的一天
-        #if lastBar.datetime.hour()==14 and lastBar.datetime.minute==59:
-        
         #print lastBar.datetime.hour,bar.datetime,lastBar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry
-        if lastBar.datetime.hour==15 :
+        
+        # 新的一天
+        if lastBar.datetime.hour==14 and lastBar.datetime.minute==59:     
+        #if lastBar.datetime.hour==15 :
             if self.dayBar:                
                 self.onDayBar(self.dayBar)
             
@@ -190,6 +190,10 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.dayBar.low = min(self.dayBar.low, bar.low)
             self.dayBar.close=bar.close
 
+        
+        self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
+        self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn 
+        
         # 尚未到收盘
         if not self.rangeUp:
             return
@@ -241,6 +245,8 @@ class YYFDualThrustStrategy(CtaTemplate):
         self.highArray[-1] = dayBar.high
         self.lowArray[-1] = dayBar.low
         self.openArray[-1] = dayBar.open
+        
+        #print "dayBar:",dayBar.date,dayBar.open,dayBar.high,dayBar.low,dayBar.close
     
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
@@ -258,8 +264,7 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.LLValue = talib.MIN(self.lowArray, timeperiod=self.d1)[-1]
             self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d1)[-1]
         
-        self.rangeUp = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)
-        self.longEntry = self.openArray[-1] + self.k1 * self.rangeUp
+        self.rangeUp = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)       
        
         if self.d2==1:
             self.HHValue = self.highArray[-1]
@@ -273,7 +278,7 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d2)[-1]
     
         self.rangeDn = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)   
-        self.shortEntry = self.openArray[-1] - self.k2 * self.rangeDn    
+           
 
         self.putEvent()        
 
