@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
 	# 设置回测用的数据起始日期
 	engine.setStartDate('20110101')
-	#engine.setEndDate('20120112')
+	#engine.setEndDate('20110220')
 
 	# 设置产品相关参数
 	engine.setSlippage(1)     # 1跳
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 	engine.setDatabase(MINUTE_DB_NAME, 'rb0000')
 
 	# 在引擎中创建策略对象
-	d = {}
+	d = {'k1':0.5,'k2':0.5}
 	engine.initStrategy(YYFDualThrustStrategy, d)
 
 	# 开始跑回测

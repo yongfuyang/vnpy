@@ -16,7 +16,7 @@ from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
 ########################################################################
 class YYFDualThrustStrategy(CtaTemplate):
     """DualThrust交易策略"""
-    className = 'DualThrustStrategy'
+    className = 'YYFDualThrustStrategy'
     author = u'用Python的交易员'
 
     # 策略参数
@@ -41,7 +41,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     longEntry = 0
     shortEntry = 0
     
-    bufferSize = 20                    # 需要缓存的数据的大小
+    bufferSize = 10                    # 需要缓存的数据的大小
     bufferCount = 0                     # 目前已经缓存了的数据的计数
 
     highArray = np.zeros(bufferSize)    # K线最高价的数组
@@ -64,8 +64,8 @@ class YYFDualThrustStrategy(CtaTemplate):
                  'className',
                  'author',
                  'vtSymbol',
-                 'k1',
-                 'k2']    
+                 'k1','d1',
+                 'k2','d2']    
 
     # 变量列表，保存了变量的名称
     varList = ['inited',
@@ -159,6 +159,8 @@ class YYFDualThrustStrategy(CtaTemplate):
         
         # 新的一天
         #if lastBar.datetime.hour()==14 and lastBar.datetime.minute==59:
+        
+        #print lastBar.datetime.hour,bar.datetime,lastBar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry
         if lastBar.datetime.hour==15 :
             if self.dayBar:                
                 self.onDayBar(self.dayBar)
@@ -193,38 +195,35 @@ class YYFDualThrustStrategy(CtaTemplate):
             return
 
         if self.pos == 0:
-            if not self.longEntered:
-                vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
-                self.orderList.append(vtOrderID)
-            if not self.shortEntered:
-                vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
-                self.orderList.append(vtOrderID)
+            vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
+            self.orderList.append(vtOrderID)
+
+            vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
+            self.orderList.append(vtOrderID)
 
         # 持有多头仓位
         elif self.pos > 0:
-            self.longEntered = True
 
             # 多头止损单
             vtOrderID = self.sell(self.shortEntry, self.fixedSize, stop=True)
             self.orderList.append(vtOrderID)
             
             # 空头开仓单
-            if not self.shortEntered:
-                vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
-                self.orderList.append(vtOrderID)
+
+            vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
+            self.orderList.append(vtOrderID)
             
         # 持有空头仓位
         elif self.pos < 0:
-            self.shortEntered = True
 
             # 空头止损单
             vtOrderID = self.cover(self.longEntry, self.fixedSize, stop=True)
             self.orderList.append(vtOrderID)
             
             # 多头开仓单
-            if not self.longEntered:
-                vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
-                self.orderList.append(vtOrderID)  
+
+            vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
+            self.orderList.append(vtOrderID)  
             
        
  
