@@ -248,18 +248,30 @@ class YYFDualThrustStrategy(CtaTemplate):
             return
     
         # 计算指标数值
-        self.HHValue = talib.MAX(self.highArray, timeperiod=self.d1)[-1]
-        self.HCValue = talib.MAX(self.closeArray, timeperiod=self.d1)[-1]
-        self.LLValue = talib.MIN(self.lowArray, timeperiod=self.d1)[-1]
-        self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d1)[-1]
-    
+        if self.d1==1:
+            self.HHValue = self.highArray[-1]
+            self.HCValue = self.closeArray[-1]
+            self.LLValue = self.lowArray[-1]
+            self.LCValue = self.closeArray[-1]            
+        else:
+            self.HHValue = talib.MAX(self.highArray, timeperiod=self.d1)[-1]
+            self.HCValue = talib.MAX(self.closeArray, timeperiod=self.d1)[-1]
+            self.LLValue = talib.MIN(self.lowArray, timeperiod=self.d1)[-1]
+            self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d1)[-1]
+        
         self.rangeUp = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)
         self.longEntry = self.openArray[-1] + self.k1 * self.rangeUp
-        
-        self.HHValue = talib.MAX(self.highArray, timeperiod=self.d2)[-1]
-        self.HCValue = talib.MAX(self.closeArray, timeperiod=self.d2)[-1]
-        self.LLValue = talib.MIN(self.lowArray, timeperiod=self.d2)[-1]
-        self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d2)[-1]
+       
+        if self.d2==1:
+            self.HHValue = self.highArray[-1]
+            self.HCValue = self.closeArray[-1]
+            self.LLValue = self.lowArray[-1]
+            self.LCValue = self.closeArray[-1]            
+        else: 
+            self.HHValue = talib.MAX(self.highArray, timeperiod=self.d2)[-1]
+            self.HCValue = talib.MAX(self.closeArray, timeperiod=self.d2)[-1]
+            self.LLValue = talib.MIN(self.lowArray, timeperiod=self.d2)[-1]
+            self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d2)[-1]
     
         self.rangeDn = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)   
         self.shortEntry = self.openArray[-1] - self.k2 * self.rangeDn    
