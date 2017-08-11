@@ -84,6 +84,9 @@ class CtaEngine(object):
         # 引擎类型为实盘
         self.engineType = ENGINETYPE_TRADING
         
+        self.accountAvailable=0
+        self.accountBalance=0
+        
         # 注册事件监听
         self.registerEvent()
  
@@ -328,12 +331,22 @@ class CtaEngine(object):
             posBuffer.updatePositionData(pos)
     
     #----------------------------------------------------------------------
+    def processAccountEvent(self, event):
+        """处理持仓推送"""
+        account = event.dict_['data']
+        
+        # 更新持仓缓存数据
+        self.accountAvailable=account.available
+        self.accountBalance=account.balance
+    #----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
         self.eventEngine.register(EVENT_TICK, self.processTickEvent)
         self.eventEngine.register(EVENT_ORDER, self.processOrderEvent)
         self.eventEngine.register(EVENT_TRADE, self.processTradeEvent)
         self.eventEngine.register(EVENT_POSITION, self.processPositionEvent)
+        self.eventEngine.register(EVENT_ACCOUNT, self.processAccountEvent)
+        
  
     #----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):

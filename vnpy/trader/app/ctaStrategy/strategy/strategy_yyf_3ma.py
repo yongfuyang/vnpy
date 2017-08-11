@@ -57,9 +57,9 @@ class ThreeEmaStrategy(CtaTemplate):
     longMa = []             # 与上面相同
     
     initCapital = 1000000
-    riskPercent=0.1
-    stopAtrs=5
-    atrLength=14
+    riskPercent=0.01
+    stopAtrs=2
+    atrLength=20
     atr=None
     
     orderList=[]
@@ -219,6 +219,7 @@ class ThreeEmaStrategy(CtaTemplate):
         d=self.calculateTradeResult()
         if d.has_key('capital'):
             self.totalEquity=self.totalEquity+d['capital']
+            print self.initCapital,self.totalEquity,d['capital']
         
         if self.totalEquity<=0:
             return
@@ -226,8 +227,6 @@ class ThreeEmaStrategy(CtaTemplate):
         for orderID in self.orderList:
             self.cancelOrder(orderID)
         self.orderList = []  
-        
-        
         
     
         # 保存K线数据
