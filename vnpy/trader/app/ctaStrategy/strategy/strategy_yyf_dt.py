@@ -171,8 +171,7 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.cancelOrder(orderID)
         self.orderList = []        
         
-        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss
-        
+                
         # 新的一天
         if bar.datetime.hour==14 and bar.datetime.minute==59:     #夜盘是从21:00开始，早盘从9:00开始，回测时第一根dayBar从早上9点开始，后续都是从14:59分后，自动增加一个dayBar
         #if lastBar.datetime.hour==15 :
@@ -201,6 +200,8 @@ class YYFDualThrustStrategy(CtaTemplate):
         # 尚未到收盘
         if not self.rangeUp  or not  self.dayBar  or self.dayBar.open == EMPTY_FLOAT :
             return
+        
+        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close
         
         self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
         self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn         
