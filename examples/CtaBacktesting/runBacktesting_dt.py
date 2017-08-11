@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
 	# 设置回测用的数据起始日期
 	engine.setStartDate('20110101')
-	#engine.setEndDate('20110220')
+	#engine.setEndDate('20110320')
 
 	# 设置产品相关参数
 	engine.setSlippage(1)     # 1跳

@@ -5,6 +5,8 @@ DualThrust交易策略
 """
 
 import datetime
+import math
+import copy
 import talib
 import numpy as np
 
@@ -12,6 +14,8 @@ from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
 
+from vnpy.trader.vtConstant import (EMPTY_STRING, EMPTY_UNICODE, 
+                                    EMPTY_FLOAT, EMPTY_INT)
 
 ########################################################################
 class YYFDualThrustStrategy(CtaTemplate):
@@ -20,11 +24,15 @@ class YYFDualThrustStrategy(CtaTemplate):
     author = u'用Python的交易员'
 
     # 策略参数
-    fixedSize = 1
+    lots = 1
     k1 = 0.4
     k2 = 0.6
     d1 = 1
     d2 = 1
+    
+    initCapital = 10000
+    riskPercent=0.03
+    totalEquity = initCapital
 
     initDays = 10
 
@@ -63,7 +71,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     paramList = ['name',
                  'className',
                  'author',
-                 'vtSymbol',
+                 'vtSymbol','riskPercent',
                  'k1','d1',
                  'k2','d2']    
 
@@ -143,90 +151,90 @@ class YYFDualThrustStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
+        
+        d=self.calculateTradeResult()
+        if d.has_key('capital'):
+            self.totalEquity=self.totalEquity+d['capital']
+            print self.initCapital,self.totalEquity,d['capital']
+    
+        if self.totalEquity<=0:
+            return        
+        
+        stoploss=self.k1*self.rangeUp+self.k2*self.rangeDn
+        if stoploss!=0 :
+            self.lots=math.floor(self.totalEquity*self.riskPercent/(self.ctaEngine.size*stoploss))
+        if self.lots==0:
+            self.lots=1          
+        
         # 撤销之前发出的尚未成交的委托（包括限价单和停止单）
         for orderID in self.orderList:
             self.cancelOrder(orderID)
-        self.orderList = []
-
-        # 计算指标数值
-        self.barList.append(bar)
+        self.orderList = []        
         
-        if len(self.barList) <= 2:
-            return
-        else:
-            self.barList.pop(0)
-        lastBar = self.barList[-2]
-        
-        #print lastBar.datetime.hour,bar.datetime,lastBar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry
+        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss
         
         # 新的一天
-        if lastBar.datetime.hour==14 and lastBar.datetime.minute==59:     
+        if bar.datetime.hour==14 and bar.datetime.minute==59:     #夜盘是从21:00开始，早盘从9:00开始，回测时第一根dayBar从早上9点开始，后续都是从14:59分后，自动增加一个dayBar
         #if lastBar.datetime.hour==15 :
-            if self.dayBar:                
+            if self.dayBar:
+                self.dayBar.high = max(self.dayBar.high, bar.high)
+                self.dayBar.low = min(self.dayBar.low, bar.low)
+                self.dayBar.close=bar.close                
                 self.onDayBar(self.dayBar)
             
-            # 15:00之后的算作下一天的Bar
+            # 14:59之后的算作下一天的Bar
             self.dayBar = VtBarData()
-            self.dayBar.date = lastBar.datetime.date() + datetime.timedelta(days=1)
-            self.dayBar.exchange = bar.exchange
-            self.dayBar.open = bar.open
-            self.dayBar.high = bar.high
-            self.dayBar.low = bar.low
-            self.dayBar.close = bar.close     
-            
+            self.dayBar.date = bar.datetime.date() + datetime.timedelta(days=1)
+            self.dayBar.exchange = bar.exchange           
         else:
-            if not self.dayBar:
-                #起始的第一天开始一般从早盘9:00开始，所以要初始化两次
-                self.dayBar = VtBarData()
-                self.dayBar.date = bar.date
-                self.dayBar.exchange = bar.exchange
-                self.dayBar.open = bar.open
-                self.dayBar.high = bar.high
-                self.dayBar.low = bar.low
-                self.dayBar.close = bar.close
-                
-                
-            self.dayBar.high = max(self.dayBar.high, bar.high)
-            self.dayBar.low = min(self.dayBar.low, bar.low)
-            self.dayBar.close=bar.close
-
-        
-        self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
-        self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn 
+            if self.dayBar:               
+                if self.dayBar.open == EMPTY_FLOAT:  #表明是今天的第一根Bar。
+                    self.dayBar.open = bar.open
+                    self.dayBar.high = bar.high
+                    self.dayBar.low = bar.low
+                    self.dayBar.close = bar.close                
+                else:    
+                    self.dayBar.high = max(self.dayBar.high, bar.high)
+                    self.dayBar.low = min(self.dayBar.low, bar.low)
+                    self.dayBar.close=bar.close
         
         # 尚未到收盘
-        if not self.rangeUp:
+        if not self.rangeUp  or not  self.dayBar  or self.dayBar.open == EMPTY_FLOAT :
             return
+        
+        self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
+        self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn         
 
         if self.pos == 0:
-            vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
+            vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
             self.orderList.append(vtOrderID)
 
-            vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
+            vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
             self.orderList.append(vtOrderID)
 
         # 持有多头仓位
         elif self.pos > 0:
 
             # 多头止损单
-            vtOrderID = self.sell(self.shortEntry, self.fixedSize, stop=True)
+            vtOrderID = self.sell(self.shortEntry, abs(self.pos), stop=True)
+            #print bar.datetime,'long stoploss:',self.shortEntry,self.pos
             self.orderList.append(vtOrderID)
             
             # 空头开仓单
-
-            vtOrderID = self.short(self.shortEntry, self.fixedSize, stop=True)
+            vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
+            #print bar.datetime,'short open:',self.shortEntry,self.lots
             self.orderList.append(vtOrderID)
             
         # 持有空头仓位
         elif self.pos < 0:
 
             # 空头止损单
-            vtOrderID = self.cover(self.longEntry, self.fixedSize, stop=True)
+            vtOrderID = self.cover(self.longEntry, abs(self.pos), stop=True)
             self.orderList.append(vtOrderID)
             
             # 多头开仓单
 
-            vtOrderID = self.buy(self.longEntry, self.fixedSize, stop=True)
+            vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
             self.orderList.append(vtOrderID)  
             
        
@@ -288,9 +296,13 @@ class YYFDualThrustStrategy(CtaTemplate):
         pass
 
     #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
     def onTrade(self, trade):
-        # 发出状态更新事件
-        self.putEvent()
+        """收到成交推送（必须由用户继承实现）"""
+        # 对于无需做细粒度委托控制的策略，可以忽略onOrder
+        print trade.tradeTime,"---onTrade----> pos=",self.pos," orderID=",trade.orderID, " price=", trade.price
+        self.tradeList.append(copy.copy(trade))
+        pass
 
     #----------------------------------------------------------------------
     def onStopOrder(self, so):

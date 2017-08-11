@@ -61,6 +61,10 @@ class ThreeEmaStrategy(CtaTemplate):
     stopAtrs=2
     atrLength=20
     atr=None
+    _lots=1
+    
+    crossOver=False
+    crossBelow=False
     
     orderList=[]
     tradeList=[]
@@ -158,8 +162,46 @@ class ThreeEmaStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def onBar(self, bar):
         """收到Bar推送（必须由用户继承实现）"""
-        # 如果当前是一个5分钟走完        
+        
+        # 大周期发是否应该金叉死叉的信号，小周期内根据信号判断下单
+        
+        for orderID in self.orderList:
+            self.cancelOrder(orderID)
+            self.orderList = []               
 
+        # 金叉和死叉的条件是互斥
+        # 所有的委托均以K线收盘价委托（这里有一个实盘中无法成交的风险，考虑添加对模拟市价单类型的支持）
+        if self.crossOver:
+            
+            # 如果有空头持仓，则先平空
+            if self.pos < 0:
+                vtOrderID = self.cover(bar.close, abs(self.pos))
+                self.orderList.append(vtOrderID)
+                print bar.datetime , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close            
+                
+                
+            # 如果没有多单，直接做多
+            if bar.close>self.longMa[-1] and self.pos <= 0: 
+                vtOrderID = self.buy(bar.close, self._lots)
+                self.orderList.append(vtOrderID)
+                print bar.datetime , "\t long :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+
+    
+        # 死叉和金叉相反
+        elif self.crossBelow:
+            
+            if self.pos > 0:
+                vtOrderID = self.sell(bar.close, abs(self.pos))
+                self.orderList.append(vtOrderID)
+                print bar.datetime, "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close            
+
+            if bar.close<self.longMa[-1] and self.pos >= 0:
+                vtOrderID = self.short(bar.close, self._lots)
+                self.orderList.append(vtOrderID)
+                print bar.datetime, "\t short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
+        
+
+        #处理bar的周期
         time = bar.datetime #datetime.datetime.strptime(bar.datetime, '%Y%m%d %H:%M:%S')
                 #
         year = time.year
@@ -224,9 +266,7 @@ class ThreeEmaStrategy(CtaTemplate):
         if self.totalEquity<=0:
             return
         
-        for orderID in self.orderList:
-            self.cancelOrder(orderID)
-        self.orderList = []  
+         
         
     
         # 保存K线数据
@@ -252,47 +292,16 @@ class ThreeEmaStrategy(CtaTemplate):
         
         self.atr=tools.SATR(self.highArray, self.lowArray, self.closeArray, self.atrLength)
         
-        _lots=math.floor(self.totalEquity*self.riskPercent/(self.ctaEngine.size*self.stopAtrs*self.atr[-1]))
-        if _lots==0:
-            _lots=1        
+        self._lots=math.floor(self.totalEquity*self.riskPercent/(self.ctaEngine.size*self.stopAtrs*self.atr[-1]))
+        if self._lots==0:
+            self._lots=1        
         
         
         # 判断买卖
-        crossOver = self.fastMa[-1]>self.slowMa[-1] and self.fastMa[-2]<self.slowMa[-2]      # 金叉上穿
-        crossBelow = self.fastMa[-1]<self.slowMa[-1] and self.fastMa[-2]>self.slowMa[-2] # 死叉下穿
+        self.crossOver = self.fastMa[-1]>self.slowMa[-1] and self.fastMa[-2]<self.slowMa[-2]      # 金叉上穿
+        self.crossBelow = self.fastMa[-1]<self.slowMa[-1] and self.fastMa[-2]>self.slowMa[-2] # 死叉下穿
         
-        # 金叉和死叉的条件是互斥
-        # 所有的委托均以K线收盘价委托（这里有一个实盘中无法成交的风险，考虑添加对模拟市价单类型的支持）
-        if crossOver:
-            # 如果金叉时手头没有持仓，则直接做多
-            if bar.close>self.longMa[-1]:
-                # 如果有空头持仓，则先平空，再做多
-                if self.pos < 0:
-                    self.cover(bar.close, abs(self.pos))
-                    print bar.datetime , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                
-                print bar.datetime , "\t long :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                self.buy(bar.close, _lots)
-                
-            elif self.pos < 0:
-                self.cover(bar.close, abs(self.pos))
-                print bar.datetime , "\t cover:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-
-
-        # 死叉和金叉相反
-        elif crossBelow:
-            if bar.close<self.longMa[-1]:
-                if self.pos > 0:
-                    self.sell(bar.close, abs(self.pos))
-                    print bar.datetime, "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-                
-                self.short(bar.close, _lots)
-                print bar.datetime, "\t short:fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-            
-            elif self.pos > 0:
-                self.sell(bar.close, abs(self.pos))
-                print bar.datetime, "\t sell :fastMa[-1]:" , self.fastMa[-1]," fastMa[-2]:",self.fastMa[-2]," slowMa[-1]:",self.slowMa[-1]," slowMa[-2]:",self.slowMa[-2]," longMa[-1]:",self.longMa[-1]," close[-1]:",bar.close
-
+        
                 
         # 发出状态更新事件
         self.putEvent()
