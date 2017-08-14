@@ -69,7 +69,6 @@ class KkStrategy(CtaTemplate):
                  'vtSymbol',
                  'kkLength',
                  'kkDev',
-                 'atrLength',
                  'timeFrame']    
 
     # 变量列表，保存了变量的名称
