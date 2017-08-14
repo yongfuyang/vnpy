@@ -10,6 +10,7 @@ import copy
 import talib
 import numpy as np
 
+import vnpy.trader.tools as tools
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
 from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
@@ -25,8 +26,10 @@ class YYFDualThrustStrategy(CtaTemplate):
 
     # 策略参数
     lots = 1
-    k1 = 0.4
-    k2 = 0.6
+    initK1 = 0.5
+    initK2 = 0.5
+    k1=initK1
+    k2=initK2
     d1 = 1
     d2 = 1
     KDJLength=14
@@ -211,30 +214,33 @@ class YYFDualThrustStrategy(CtaTemplate):
         if not self.rangeUp  or not  self.dayBar  or self.dayBar.open == EMPTY_FLOAT :
             return
         
-        #print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close
+        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close,self.k1,self.k2
         
         self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
         self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn         
 
         if self.pos == 0:
-            vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
-            self.orderList.append(vtOrderID)
-
-            vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
-            self.orderList.append(vtOrderID)
+            if bar.close>self.dayMa[-1]:
+                vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
+                self.orderList.append(vtOrderID)
+            
+            if bar.close<self.dayMa[-1]:
+                vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
+                self.orderList.append(vtOrderID)
 
         # 持有多头仓位
         elif self.pos > 0:
-
+            
             # 多头止损单
             vtOrderID = self.sell(self.shortEntry, abs(self.pos), stop=True)
             #print bar.datetime,'long stoploss:',self.shortEntry,self.pos
             self.orderList.append(vtOrderID)
             
-            # 空头开仓单
-            vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
-            #print bar.datetime,'short open:',self.shortEntry,self.lots
-            self.orderList.append(vtOrderID)
+            if bar.close<self.dayMa[-1]:
+                # 空头开仓单
+                vtOrderID = self.short(self.shortEntry, self.lots, stop=True)
+                #print bar.datetime,'short open:',self.shortEntry,self.lots
+                self.orderList.append(vtOrderID)
             
         # 持有空头仓位
         elif self.pos < 0:
@@ -244,9 +250,9 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.orderList.append(vtOrderID)
             
             # 多头开仓单
-
-            vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
-            self.orderList.append(vtOrderID)  
+            if bar.close>self.dayMa[-1]:
+                vtOrderID = self.buy(self.longEntry, self.lots, stop=True)
+                self.orderList.append(vtOrderID)  
             
        
  
@@ -299,9 +305,15 @@ class YYFDualThrustStrategy(CtaTemplate):
         self.rangeDn = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)   
         
         #计算KDJ
-        self.dayKValue,self.dayDValue=talib.STOCH(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
-        self.k1=self.k1*self.dayDValue/self.dayKValue
-        self.k2=self.k2*self.dayKValue/self.dayDValue
+        
+        #self.dayKValue,self.dayDValue=talib.STOCH(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
+        self.dayKValue,self.dayDValue=tools.KDJ(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
+        
+        print "KDJ:",dayBar.date,self.dayKValue[-1],self.dayDValue[-1]
+        
+        self.k1=self.initK1*self.dayDValue[-1]/self.dayKValue[-1]
+        self.k2=self.initK2*self.dayKValue[-1]/self.dayDValue[-1]
+        
         
         #计算MA
         self.dayMa=talib.MA(self.closeArray,self.dayMaLength)
