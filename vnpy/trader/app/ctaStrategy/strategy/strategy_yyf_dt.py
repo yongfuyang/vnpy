@@ -80,10 +80,8 @@ class YYFDualThrustStrategy(CtaTemplate):
     varList = ['inited',
                'trading',
                'pos',
-               'range',
                'longEntry',
-               'shortEntry',
-               'exitTime']  
+               'shortEntry']  
 
     #----------------------------------------------------------------------
     def __init__(self, ctaEngine, setting):
