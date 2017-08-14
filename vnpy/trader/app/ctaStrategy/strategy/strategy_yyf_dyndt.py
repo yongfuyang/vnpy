@@ -214,7 +214,7 @@ class YYFDualThrustStrategy(CtaTemplate):
         if not self.rangeUp  or not  self.dayBar  or self.dayBar.open == EMPTY_FLOAT :
             return
         
-        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close,self.k1,self.k2
+        #print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close,self.k1,self.k2
         
         self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
         self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn         
@@ -304,16 +304,15 @@ class YYFDualThrustStrategy(CtaTemplate):
     
         self.rangeDn = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)   
         
-        #计算KDJ
-        
-        #self.dayKValue,self.dayDValue=talib.STOCH(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
+        #计算KDJ        
+        '''
+        self.dayKValue,self.dayDValue=talib.STOCH(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
         self.dayKValue,self.dayDValue=tools.KDJ(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
-        
         print "KDJ:",dayBar.date,self.dayKValue[-1],self.dayDValue[-1]
         
         self.k1=self.initK1*self.dayDValue[-1]/self.dayKValue[-1]
         self.k2=self.initK2*self.dayKValue[-1]/self.dayDValue[-1]
-        
+        '''
         
         #计算MA
         self.dayMa=talib.MA(self.closeArray,self.dayMaLength)
