@@ -19,7 +19,7 @@ from vnpy.trader.vtConstant import (EMPTY_STRING, EMPTY_UNICODE,
                                     EMPTY_FLOAT, EMPTY_INT)
 
 ########################################################################
-class YYFDualThrustStrategy(CtaTemplate):
+class YYFDTMAStrategy(CtaTemplate):
     """DualThrust交易策略"""
     className = 'YYFDualThrustStrategy'
     author = u'用Python的交易员'
@@ -37,7 +37,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     KDJSmoothLength=3
     dayMaLength=10
     
-    initCapital = 100000
+    initCapital = 10000
     riskPercent=0.04
     totalEquity = initCapital
     marginRatio=0.1
@@ -96,7 +96,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     #----------------------------------------------------------------------
     def __init__(self, ctaEngine, setting):
         """Constructor"""
-        super(YYFDualThrustStrategy, self).__init__(ctaEngine, setting) 
+        super(YYFDTMAStrategy, self).__init__(ctaEngine, setting) 
         
         self.barList = []
 
