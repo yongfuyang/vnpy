@@ -29,13 +29,17 @@ class YYFDualThrustStrategy(CtaTemplate):
     k2 = 0.6
     d1 = 1
     d2 = 1
+    KDJLength=14
+    KDJSlowLength=3
+    KDJSmoothLength=3
+    dayMaLength=10
     
     initCapital = 100000
     riskPercent=0.04
     totalEquity = initCapital
     marginRatio=0.1
 
-    initDays = 10
+    initDays = 20
 
     # 策略变量
     bar = None                  # K线对象
@@ -43,6 +47,9 @@ class YYFDualThrustStrategy(CtaTemplate):
     barList = []                # K线对象的列表
 
     dayBar = None
+    dayMa = 0
+    dayKValue =0
+    dayDValue =0
    
     rangeUp = 0
     rangeDn = 0
@@ -50,7 +57,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     longEntry = 0
     shortEntry = 0
     
-    bufferSize = 10                    # 需要缓存的数据的大小
+    bufferSize = 20                    # 需要缓存的数据的大小
     bufferCount = 0                     # 目前已经缓存了的数据的计数
 
     highArray = np.zeros(bufferSize)    # K线最高价的数组
@@ -290,7 +297,14 @@ class YYFDualThrustStrategy(CtaTemplate):
             self.LCValue = talib.MIN(self.closeArray, timeperiod=self.d2)[-1]
     
         self.rangeDn = max(self.HHValue - self.LCValue, self.HCValue - self.LLValue)   
-           
+        
+        #计算KDJ
+        self.dayKValue,self.dayDValue=talib.STOCH(self.highArray,self.lowArray,self.closeArray,fastk_period=self.KDJLength,slowk_period=self.KDJSlowLength,slowd_period=self.KDJSmoothLength)
+        self.k1=self.k1*self.dayDValue/self.dayKValue
+        self.k2=self.k2*self.dayKValue/self.dayDValue
+        
+        #计算MA
+        self.dayMa=talib.MA(self.closeArray,self.dayMaLength)
 
         self.putEvent()        
 
