@@ -22,8 +22,8 @@ if __name__ == '__main__':
 	engine.setBacktestingMode(engine.BAR_MODE)
 
 	# 设置回测用的数据起始日期
-	engine.setStartDate('20110101')
-	#engine.setEndDate('20120720')
+	engine.setStartDate('20170101')
+	engine.setEndDate('20170720')
 
 	# 设置产品相关参数
 	engine.setSlippage(1)     # 1跳

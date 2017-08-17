@@ -89,7 +89,7 @@ class YYFDualThrustStrategy(CtaTemplate):
     # 变量列表，保存了变量的名称
     varList = ['inited',
                'trading',
-               'pos',
+               'pos','dayMa','totalEquity'
                'longEntry',
                'shortEntry']  
 
@@ -212,7 +212,7 @@ class YYFDualThrustStrategy(CtaTemplate):
         if not self.rangeUp  or not  self.dayBar  or self.dayBar.open == EMPTY_FLOAT :
             return
         
-        #print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close,self.k1,self.k2
+        print bar.datetime,self.rangeUp,self.rangeDn,self.longEntry,self.shortEntry,self.lots,self.totalEquity,stoploss,self.dayBar.open,self.dayBar.high,self.dayBar.low,self.dayBar.close,bar.open,bar.high,bar.low,bar.close,self.k1,self.k2
         
         self.longEntry = self.dayBar.open + self.k1 * self.rangeUp
         self.shortEntry = self.dayBar.open - self.k2 * self.rangeDn         
@@ -269,7 +269,7 @@ class YYFDualThrustStrategy(CtaTemplate):
         self.lowArray[-1] = dayBar.low
         self.openArray[-1] = dayBar.open
         
-        #print "dayBar:",dayBar.date,dayBar.open,dayBar.high,dayBar.low,dayBar.close
+        print "dayBar:",dayBar.date,dayBar.open,dayBar.high,dayBar.low,dayBar.close
     
         self.bufferCount += 1
         if self.bufferCount < self.bufferSize:
