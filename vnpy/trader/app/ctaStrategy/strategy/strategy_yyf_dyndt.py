@@ -40,6 +40,7 @@ class YYFDTMAStrategy(CtaTemplate):
     initCapital = 10000
     riskPercent=0.04
     totalEquity = initCapital
+    size=10
     marginRatio=0.1
 
     initDays = 40
@@ -171,8 +172,8 @@ class YYFDTMAStrategy(CtaTemplate):
         
         stoploss=self.k1*self.rangeUp+self.k2*self.rangeDn
         if stoploss!=0 :
-            self.lots=math.floor(self.totalEquity*self.riskPercent/(self.ctaEngine.size*stoploss))
-            while self.lots*self.ctaEngine.size*bar.open*self.marginRatio > self.totalEquity:
+            self.lots=math.floor(self.totalEquity*self.riskPercent/(self.size*stoploss))
+            while self.lots*self.size*bar.open*self.marginRatio > self.totalEquity:
                 self.lots=self.lots-1
         if self.lots==0:
             self.lots=1          
