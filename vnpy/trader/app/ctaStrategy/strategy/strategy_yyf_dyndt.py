@@ -42,7 +42,7 @@ class YYFDTMAStrategy(CtaTemplate):
     totalEquity = initCapital
     marginRatio=0.1
 
-    initDays = 20
+    initDays = 40
 
     # 策略变量
     bar = None                  # K线对象
