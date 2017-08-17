@@ -7,7 +7,7 @@
 from __future__ import division
 
 from vnpy.trader.app.ctaStrategy.ctaBacktesting import BacktestingEngine, OptimizationSetting, MINUTE_DB_NAME
-from vnpy.trader.app.ctaStrategy.strategy.strategy_yyf_dyndt import YYFDualThrustStrategy
+from vnpy.trader.app.ctaStrategy.strategy.strategy_yyf_dyndt import YYFDTMAStrategy
 #from vnpy.trader.app.ctaStrategy.strategy.strategyDualThrust import DualThrustStrategy
 #from vnpy.trader.app.ctaStrategy.strategy.strategyKingKeltner import KkStrategy
 #from vnpy.trader.app.ctaStrategy.strategy.strategyAtrRsi import AtrRsiStrategy
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
 	# 在引擎中创建策略对象
 	d = {'initK1':0.5,'initK2':0.5}
-	engine.initStrategy(YYFDualThrustStrategy, d)
+	engine.initStrategy(YYFDTMAStrategy, d)
 
 	# 开始跑回测
 	engine.runBacktesting()
