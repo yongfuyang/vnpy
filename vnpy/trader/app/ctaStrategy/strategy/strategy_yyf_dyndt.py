@@ -89,7 +89,7 @@ class YYFDTMAStrategy(CtaTemplate):
     # 变量列表，保存了变量的名称
     varList = ['inited',
                'trading',
-               'pos','dayMa','totalEquity'
+               'pos','dayMa','totalEquity',
                'longEntry',
                'shortEntry']  
 
