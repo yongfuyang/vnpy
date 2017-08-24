@@ -86,6 +86,7 @@ class CtaEngine(object):
         
         self.accountAvailable=0
         self.accountBalance=0
+        self.dt = None      # 最新的时间
         
         # 注册事件监听
         self.registerEvent()
@@ -267,6 +268,7 @@ class CtaEngine(object):
                 # 添加datetime字段
                 if not tick.datetime:
                     tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+                    self.dt = tick.datetime
             except ValueError:
                 self.writeCtaLog(traceback.format_exc())
                 return
@@ -289,6 +291,7 @@ class CtaEngine(object):
     def processTradeEvent(self, event):
         """处理成交推送"""
         trade = event.dict_['data']
+        trade.dt=self.dt
         
         # 过滤已经收到过的成交回报
         if trade.vtTradeID in self.tradeSet:
