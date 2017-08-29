@@ -1,18 +1,18 @@
 {
-    "working": true,
+    "working": True,
 
     "tick":
     [
+        ["rb1801", "CTP"]
     ],
 
     "bar":
     [
-        ["BTC_CNY_SPOT", "OKCOIN"],
-        ["LTC_CNY_SPOT", "OKCOIN"],
-        ["ETH_CNY_SPOT", "OKCOIN"]
+        ["rb1801", "CTP"]
     ],
 
     "active":
     {
+        "rb0000": "rb1801"
     }
 }
