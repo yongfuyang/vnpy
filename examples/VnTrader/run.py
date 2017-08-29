@@ -24,7 +24,7 @@ if system == 'Windows':
                                      sgitGateway, shzdGateway)
 
 # 加载上层应用
-from vnpy.trader.app import (riskManager, ctaStrategy, spreadTrading)
+from vnpy.trader.app import (riskManager, ctaStrategy, spreadTrading, dataRecorder)
 
 
 #----------------------------------------------------------------------
@@ -56,6 +56,7 @@ def main():
     me.addApp(riskManager)
     me.addApp(ctaStrategy)
     me.addApp(spreadTrading)
+    me.addApp(dataRecorder)
     
     # 创建主窗口
     mw = MainWindow(me, ee)
