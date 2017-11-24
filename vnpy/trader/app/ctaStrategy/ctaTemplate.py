@@ -58,7 +58,22 @@ class CtaTemplate(object):
         shortTrade = []             # 未平仓的空头交易
     
         tradeTimeList = []          # 每笔成交时间戳
-        posList = [0]               # 每笔成交后的持仓情况        
+        posList = [0]               # 每笔成交后的持仓情况
+        
+        rate=1.0/10000
+        slippage=1
+        size=10
+        pricetick=1
+        
+        try:
+            if self.rate:
+                rate=self.rate
+            if self.slippage:
+                slippage=self.slippage
+            if self.size:
+                size=self.size
+        except AttributeError as e:
+            pass
     
         for trade in self.tradeList:
             # 多头交易
@@ -76,7 +91,7 @@ class CtaTemplate(object):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt, 
                                                exitTrade.price, exitTrade.dt,
-                                               -closedVolume, self.ctaEngine.rate, self.ctaEngine.slippage, self.ctaEngine.size)
+                                               -closedVolume, rate, slippage, size)
                         resultList.append(result)
     
                         posList.extend([-1,0])
@@ -120,7 +135,7 @@ class CtaTemplate(object):
                         closedVolume = min(exitTrade.volume, entryTrade.volume)
                         result = TradingResult(entryTrade.price, entryTrade.dt, 
                                                exitTrade.price, exitTrade.dt,
-                                               closedVolume, self.ctaEngine.rate, self.ctaEngine.slippage, self.ctaEngine.size)
+                                               closedVolume, rate, slippage, size)
                         resultList.append(result)
     
                         posList.extend([1,0])
