@@ -10,7 +10,7 @@ from vnpy.trader.uiBasicWidget import (BasicMonitor, BasicCell, PnlCell,
 from .stBase import (EVENT_SPREADTRADING_TICK, EVENT_SPREADTRADING_POS,
                      EVENT_SPREADTRADING_LOG, EVENT_SPREADTRADING_ALGO,
                      EVENT_SPREADTRADING_ALGOLOG)
-from .stAlgo import StAlgoTemplate
+from .stAlgo import MfAlgoTemplate
 
 
 STYLESHEET_START = 'background-color: rgb(111,255,244); color: black'
@@ -18,13 +18,13 @@ STYLESHEET_STOP = 'background-color: rgb(255,201,111); color: black'
 
 
 ########################################################################
-class StTickMonitor(BasicMonitor):
+class MfTickMonitor(BasicMonitor):
     """价差行情监控"""
     
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine, parent=None):
         """Constructor"""
-        super(StTickMonitor, self).__init__(mainEngine, eventEngine, parent)
+        super(MfTickMonitor, self).__init__(mainEngine, eventEngine, parent)
         
         d = OrderedDict()
         d['name'] = {'chinese':u'价差名称', 'cellType':BasicCell}
@@ -45,13 +45,13 @@ class StTickMonitor(BasicMonitor):
 
 
 ########################################################################
-class StPosMonitor(BasicMonitor):
+class MfPosMonitor(BasicMonitor):
     """价差持仓监控"""
     
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine, parent=None):
         """Constructor"""
-        super(StPosMonitor, self).__init__(mainEngine, eventEngine, parent)
+        super(MfPosMonitor, self).__init__(mainEngine, eventEngine, parent)
         
         d = OrderedDict()
         d['name'] = {'chinese':u'价差名称', 'cellType':BasicCell}
@@ -70,14 +70,14 @@ class StPosMonitor(BasicMonitor):
 
 
 ########################################################################
-class StLogMonitor(QtWidgets.QTextEdit):
+class MfLogMonitor(QtWidgets.QTextEdit):
     """价差日志监控"""
     signal = QtCore.Signal(type(Event()))
     
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine, parent=None):
         """Constructor"""
-        super(StLogMonitor, self).__init__(parent)
+        super(MfLogMonitor, self).__init__(parent)
         
         self.eventEngine = eventEngine
         
@@ -99,13 +99,13 @@ class StLogMonitor(QtWidgets.QTextEdit):
 
 
 ########################################################################
-class StAlgoLogMonitor(BasicMonitor):
+class MfAlgoLogMonitor(BasicMonitor):
     """价差日志监控"""
     
     #----------------------------------------------------------------------
     def __init__(self, mainEngine, eventEngine, parent=None):
         """Constructor"""
-        super(StAlgoLogMonitor, self).__init__(mainEngine, eventEngine, parent)
+        super(MfAlgoLogMonitor, self).__init__(mainEngine, eventEngine, parent)
         
         d = OrderedDict()
         d['logTime'] = {'chinese':u'时间', 'cellType':BasicCell}
@@ -120,13 +120,13 @@ class StAlgoLogMonitor(BasicMonitor):
         
 
 ########################################################################
-class StBuyPriceSpinBox(QtWidgets.QDoubleSpinBox):
+class MfBuyPriceSpinBox(QtWidgets.QDoubleSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, price, parent=None):
         """Constructor"""
-        super(StBuyPriceSpinBox, self).__init__(parent)
+        super(MfBuyPriceSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -144,13 +144,13 @@ class StBuyPriceSpinBox(QtWidgets.QDoubleSpinBox):
     
 
 ########################################################################
-class StSellPriceSpinBox(QtWidgets.QDoubleSpinBox):
+class MfSellPriceSpinBox(QtWidgets.QDoubleSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, price, parent=None):
         """Constructor"""
-        super(StSellPriceSpinBox, self).__init__(parent)
+        super(MfSellPriceSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -168,13 +168,13 @@ class StSellPriceSpinBox(QtWidgets.QDoubleSpinBox):
 
 
 ########################################################################
-class StShortPriceSpinBox(QtWidgets.QDoubleSpinBox):
+class MfShortPriceSpinBox(QtWidgets.QDoubleSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, price, parent=None):
         """Constructor"""
-        super(StShortPriceSpinBox, self).__init__(parent)
+        super(MfShortPriceSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -192,13 +192,13 @@ class StShortPriceSpinBox(QtWidgets.QDoubleSpinBox):
 
 
 ########################################################################
-class StCoverPriceSpinBox(QtWidgets.QDoubleSpinBox):
+class MfCoverPriceSpinBox(QtWidgets.QDoubleSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, price, parent=None):
         """Constructor"""
-        super(StCoverPriceSpinBox, self).__init__(parent)
+        super(MfCoverPriceSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -216,13 +216,13 @@ class StCoverPriceSpinBox(QtWidgets.QDoubleSpinBox):
     
 
 ########################################################################
-class StMaxPosSizeSpinBox(QtWidgets.QSpinBox):
+class MfMaxPosSizeSpinBox(QtWidgets.QSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, size, parent=None):
         """Constructor"""
-        super(StMaxPosSizeSpinBox, self).__init__(parent)
+        super(MfMaxPosSizeSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -239,13 +239,13 @@ class StMaxPosSizeSpinBox(QtWidgets.QSpinBox):
 
 
 ########################################################################
-class StMaxOrderSizeSpinBox(QtWidgets.QSpinBox):
+class MfMaxOrderSizeSpinBox(QtWidgets.QSpinBox):
     """"""
 
     #----------------------------------------------------------------------
     def __init__(self, algoEngine, spreadName, size, parent=None):
         """Constructor"""
-        super(StMaxOrderSizeSpinBox, self).__init__(parent)
+        super(MfMaxOrderSizeSpinBox, self).__init__(parent)
         
         self.algoEngine = algoEngine
         self.spreadName = spreadName
@@ -261,109 +261,17 @@ class StMaxOrderSizeSpinBox(QtWidgets.QSpinBox):
         self.algoEngine.setAlgoMaxOrderSize(self.spreadName, size)    
 
 
-########################################################################
-class StModeComboBox(QtWidgets.QComboBox):
-    """"""
 
-    #----------------------------------------------------------------------
-    def __init__(self, algoEngine, spreadName, mode, parent=None):
-        """Constructor"""
-        super(StModeComboBox, self).__init__(parent)
-        
-        self.algoEngine = algoEngine
-        self.spreadName = spreadName
-        
-        l = [StAlgoTemplate.MODE_LONGSHORT, 
-             StAlgoTemplate.MODE_LONGONLY,
-             StAlgoTemplate.MODE_SHORTONLY]
-        self.addItems(l)
-        self.setCurrentIndex(l.index(mode))
-        
-        self.currentIndexChanged.connect(self.setMode)
-        
-    #----------------------------------------------------------------------
-    def setMode(self):
-        """设置模式"""
-        mode = unicode(self.currentText())
-        self.algoEngine.setAlgoMode(self.spreadName, mode)
-    
-    #----------------------------------------------------------------------
-    def algoActiveChanged(self, active):
-        """算法运行状态改变"""
-        # 只允许算法停止时修改运行模式
-        if active:
-            self.setEnabled(False)
-        else:
-            self.setEnabled(True)
-
-
-########################################################################
-class StActiveButton(QtWidgets.QPushButton):
-    """"""
-    signalActive = QtCore.Signal(bool)
-
-    #----------------------------------------------------------------------
-    def __init__(self, algoEngine, spreadName, parent=None):
-        """Constructor"""
-        super(StActiveButton, self).__init__(parent)
-        
-        self.algoEngine = algoEngine
-        self.spreadName = spreadName
-        
-        self.active = False
-        self.setStopped()
-        
-        self.clicked.connect(self.buttonClicked)
-        
-    #----------------------------------------------------------------------
-    def buttonClicked(self):
-        """改变运行模式"""
-        if self.active:
-            self.stop()
-        else:
-            self.start()
-    
-    #----------------------------------------------------------------------
-    def stop(self):
-        """停止"""
-        algoActive = self.algoEngine.stopAlgo(self.spreadName)
-        if not algoActive:
-            self.setStopped()        
-            
-    #----------------------------------------------------------------------
-    def start(self):
-        """启动"""
-        algoActive = self.algoEngine.startAlgo(self.spreadName)
-        if algoActive:
-            self.setStarted()        
-        
-    #----------------------------------------------------------------------
-    def setStarted(self):
-        """算法启动"""
-        self.setText(u'运行中')
-        self.setStyleSheet(STYLESHEET_START)
-        
-        self.active = True
-        self.signalActive.emit(self.active)
-    
-    #----------------------------------------------------------------------
-    def setStopped(self):
-        """算法停止"""
-        self.setText(u'已停止')
-        self.setStyleSheet(STYLESHEET_STOP)
-        
-        self.active = False
-        self.signalActive.emit(self.active)
     
 
 ########################################################################
-class StAlgoManager(QtWidgets.QTableWidget):
+class MfAlgoManager(QtWidgets.QTableWidget):
     """价差算法管理组件"""
 
     #----------------------------------------------------------------------
     def __init__(self, stEngine, parent=None):
         """Constructor"""
-        super(StAlgoManager, self).__init__(parent)
+        super(MfAlgoManager, self).__init__(parent)
         
         self.algoEngine = stEngine.algoEngine
         
@@ -434,13 +342,13 @@ class StAlgoManager(QtWidgets.QTableWidget):
 
 
 ########################################################################
-class StGroup(QtWidgets.QGroupBox):
+class MfGroup(QtWidgets.QGroupBox):
     """集合显示"""
 
     #----------------------------------------------------------------------
     def __init__(self, widget, title, parent=None):
         """Constructor"""
-        super(StGroup, self).__init__(parent)
+        super(MfGroup, self).__init__(parent)
         
         self.setTitle(title)
         vbox = QtWidgets.QVBoxLayout()
@@ -469,35 +377,42 @@ class MfManager(QtWidgets.QWidget):
         self.setWindowTitle(u'世纪潮股票终端')
         
         # 创建组件
-        
+        self.ickMonitor = MfTickMonitor(self.mainEngine, self.eventEngine)
+        self.signalMonitor = MfPosMonitor(self.mainEngine, self.eventEngine)
+        self.traceMonitor = StLogMonitor(self.mainEngine, self.eventEngine)        
         
         # 创建按钮
-        tickButton = QtWidgets.QPushButton(u'版块行情')
-        tickButton.clicked.connect(self.tickButtonClick)       
+        self.tickButton = QtWidgets.QPushButton(u'版块行情')
+        self.tickButton.clicked.connect(self.tickButtonClick)       
         
-        daySignalButton = QtWidgets.QPushButton(u'今日信号')
-        daySignalButton.clicked.connect(self.daySignalButtonClick)
+        self.daySignalButton = QtWidgets.QPushButton(u'今日信号')
+        self.daySignalButton.clicked.connect(self.daySignalButtonClick)
         
-        traceButton = QtWidgets.QPushButton(u'信号追踪')
-        traceButton.clicked.connect(self.traceButtonClick)        
+        self.traceButton = QtWidgets.QPushButton(u'信号追踪')
+        self.traceButton.clicked.connect(self.traceButtonClick)        
         
                 
         # 设置布局
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(tickButton)
-        vbox.addWidget(daySignalButton)
-        vbox.addWidget(traceButton)
+        self.vbox = QtWidgets.QVBoxLayout()
+        self.vbox.addWidget(tickButton)
+        self.vbox.addWidget(daySignalButton)
+        self.vbox.addWidget(traceButton)
         
-        right =
+        self.right = QtWidgets.QGridLayout()
+        self.right.addWidget(MfTickMonitor)
         
         grid = QtWidgets.QGridLayout()
-        grid.addWidget(vbox, 0, 0)
-        grid.addWidget(groupPos, 1, 1)
+        grid.addWidget(self.vbox, 0, 0)
+        grid.addWidget(self.right, 0, 1)
 
         self.setLayout(grid)
         
         self.initStatusBar()
         
+    #----------------------------------------------------------------------
+    def tickButtonClick(self):
+        self.right.ad
+    
     #----------------------------------------------------------------------
     def show(self):
         """重载显示"""
