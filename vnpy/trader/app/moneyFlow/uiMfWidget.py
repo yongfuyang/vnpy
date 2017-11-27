@@ -377,7 +377,7 @@ class MfManager(QtWidgets.QWidget):
         self.setWindowTitle(u'世纪潮股票终端')
         
         # 创建组件
-        self.ickMonitor = MfTickMonitor(self.mainEngine, self.eventEngine)
+        self.tickMonitor = MfTickMonitor(self.mainEngine, self.eventEngine)
         self.signalMonitor = MfPosMonitor(self.mainEngine, self.eventEngine)
         self.traceMonitor = StLogMonitor(self.mainEngine, self.eventEngine)        
         
@@ -399,7 +399,7 @@ class MfManager(QtWidgets.QWidget):
         self.vbox.addWidget(traceButton)
         
         self.right = QtWidgets.QGridLayout()
-        self.right.addWidget(MfTickMonitor)
+        self.right.addWidget(self.tickMonitor)
         
         grid = QtWidgets.QGridLayout()
         grid.addWidget(self.vbox, 0, 0)
@@ -411,7 +411,7 @@ class MfManager(QtWidgets.QWidget):
         
     #----------------------------------------------------------------------
     def tickButtonClick(self):
-        self.right.ad
+        self.tickMonitor.show()
     
     #----------------------------------------------------------------------
     def show(self):
