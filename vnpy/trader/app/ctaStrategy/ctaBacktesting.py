@@ -368,7 +368,8 @@ class BacktestingEngine(object):
                 self.strategy.onOrder(order)
                 
                 # 从字典中删除该限价单
-                del self.workingLimitOrderDict[orderID]
+                if orderID in self.workingLimitOrderDict:
+                    del self.workingLimitOrderDict[orderID]
                 
     #----------------------------------------------------------------------
     def crossStopOrder(self):
@@ -587,6 +588,12 @@ class BacktestingEngine(object):
         # 撤销停止单
         for stopOrderID in self.workingStopOrderDict.keys():
             self.cancelStopOrder(stopOrderID)
+
+    #----------------------------------------------------------------------
+    def saveSyncData(self, strategy):
+        """保存同步数据（无效）"""
+        pass
+        
 
     #------------------------------------------------
     # 结果计算相关

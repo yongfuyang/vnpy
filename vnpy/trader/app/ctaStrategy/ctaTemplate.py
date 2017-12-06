@@ -47,6 +47,9 @@ class CtaTemplate(object):
                'trading',
                'pos']
     
+    # 同步列表，保存了需要保存到数据库的变量名称
+    syncList = ['pos']
+    
     tradeList = []   
 
     #----------------------------------------------------------------------
@@ -401,6 +404,11 @@ class CtaTemplate(object):
 class TradingResult(object):
     """每笔交易的结果"""
 
+    
+    #----------------------------------------------------------------------
+    def saveSyncData(self):
+        """保存同步数据到数据库"""
+        self.ctaEngine.saveSyncData(self)
     #----------------------------------------------------------------------
     def __init__(self, entryPrice, entryDt, exitPrice, 
                  exitDt, volume, rate, slippage, size):
@@ -479,7 +487,8 @@ class TargetPosTemplate(CtaTemplate):
     def onOrder(self, order):
         """收到委托推送"""
         if order.status == STATUS_ALLTRADED or order.status == STATUS_CANCELLED:
-            self.orderList.remove(order.vtOrderID)
+            if order.vtOrderID in self.orderList:
+                self.orderList.remove(order.vtOrderID)
     
     #----------------------------------------------------------------------
     def setTargetPos(self, targetPos):
@@ -628,19 +637,20 @@ class BarManager(object):
             self.xminBar.open = bar.open
             self.xminBar.high = bar.high
             self.xminBar.low = bar.low            
+            
+            self.xminBar.datetime = bar.datetime    # 以第一根分钟K线的开始时间戳作为X分钟线的时间戳
         # 累加老K线
         else:
             self.xminBar.high = max(self.xminBar.high, bar.high)
             self.xminBar.low = min(self.xminBar.low, bar.low)
     
         # 通用部分
-        self.xminBar.close = bar.close
-        self.xminBar.datetime = bar.datetime
+        self.xminBar.close = bar.close        
         self.xminBar.openInterest = bar.openInterest
         self.xminBar.volume += int(bar.volume)                
             
         # X分钟已经走完
-        if not bar.datetime.minute % self.xmin:   # 可以用X整除
+        if not (bar.datetime.minute + 1) % self.xmin:   # 可以用X整除
             # 生成上一X分钟K线的时间戳
             self.xminBar.datetime = self.xminBar.datetime.replace(second=0, microsecond=0)  # 将秒和微秒设为0
             self.xminBar.date = self.xminBar.datetime.strftime('%Y%m%d')
