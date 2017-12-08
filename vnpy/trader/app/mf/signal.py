@@ -1,5 +1,6 @@
 # encoding: UTF-8
 import MySQLdb
+import mysql.connector
 from mysql.connector import RefreshOption
 from datetime import datetime, timedelta
 
@@ -55,6 +56,7 @@ def initStockInfoDate():
 #------------------------------------------------------------------------------------------------------------------
 def initStockInfoDateBatch():
 	conn = MySQLdb.connect(host='1w8573f055.iok.la', port=35941, user='root',passwd='123456',db='stock_basics_info_all_date')
+	#conn = mysql.connector.connect(host='1w8573f055.iok.la', port=35941, user='root',password='123456',database='stock_basics_info_all_date',use_unicode=True,charset="utf8")
 	
 	refresh = RefreshOption.LOG | RefreshOption.THREADS | RefreshOption.TABLES
 	
@@ -65,7 +67,7 @@ def initStockInfoDateBatch():
 	cur.close()
 	
 	cur = conn.cursor()	
-	tablesql= "select table_name from information_schema.tables where table_schema='Stock_Basics_Info_All_New' and table_type='base table'"
+	tablesql= "select table_name from information_schema.tables where table_schema='test' and table_type='base table' and table_name like '%stock_basics' "
 	cur.execute(tablesql)
 	tables=cur.fetchall()	
 	cur.close()
@@ -108,27 +110,36 @@ def initStockInfoDateBatch():
   """
 
 	tableNameList=[]
+	dateTableNames=[]
 	for d in days:
-		tableNameList.append(str.replace(d[0], '-', '')+'stock_basics')
+		tn=str.replace(d[0], '-', '')+'stock_basics'
+		tableNameList.append(tn)
+		dateTableNames.append((d[0],tn))
 
-	for t in tableNameList:
+	for d,t in dateTableNames:
+		cur = conn.cursor()	
+		sql1=templateSql.replace("TEMPLATETABLENAME", t)
+		cur.execute(sql1)
+		cur.close()		
+		
 		
 		while len(tables)>0:
-			sql1=templateSql.replace("TEMPLATETABLENAME", t)+" insert into "+t
+			sql1=" insert into "+t
 			
 			if len(tables)>=100:
 				
 				sql2=""
 				for i in range(99) :
 					t1=tables[i]			
-					sql2=sql2+" select * from Stock_Basics_Info_All_New."+t1[0]+" where date='"+d[0]+"' union"
+					sql2=sql2+" select * from test."+t1[0]+" where date='"+d+"' union"
 		
 				sql3=sql1+sql2[:-5]
-				#print sql3
+				
 				cur = conn.cursor()	
-				cur.execute(sql3)
+				n=cur.execute(sql3)
 				tables=tables[100:]				
 				cur.close()
+				print 'insert %d rows!'%n
 				#conn.cmd_refresh(refresh)
 				conn.commit()
 			else:
@@ -136,14 +147,15 @@ def initStockInfoDateBatch():
 				sql2=""
 				for i in range(len(tables)) :
 					t1=tables[i]			
-					sql2=sql2+" select * from Stock_Basics_Info_All_New."+t1[0]+" where date='"+d[0]+"' union"
+					sql2=sql2+" select * from test."+t1[0]+" where date='"+d+"' union"
 		
 				sql3=sql1+sql2[:-5]
 				#print sql3
 				cur = conn.cursor()	
-				cur.execute(sql3)
+				n=cur.execute(sql3)
 				tables=[]
 				cur.close()
+				print 'insert %d rows!'%n
 				#conn.cmd_refresh(refresh)
 				conn.commit()
 	
@@ -154,15 +166,45 @@ def initStockInfoDateBatch():
 
 class MfSignal(object):
 	
-	def init(self):
-		self.turnoverRate=5 #换手率高于，0为不计算
-		self.fluctuation=1	#涨跌幅，0为不设置
+	def __init__(self):
+		self.turnoverRate=0.05 #换手率高于，0为不计算
+		self.fluctuation=0.01	#涨跌幅，0为不设置
 		self.resonanceNum=4	#版块共振的信号数目		
 		self.pe=50			#pe，0为不设置
-		self.flu50=20		#前50日涨幅小于20%
+		self.flu50=0.20		#前50日涨幅小于20%
 		self.orgBuySellRate=2	#机构当日净买入额是机构当日净卖出额的2倍以上
+		self.orgVolRation=1.5	#当日机构成交量是前两日成交量均值的1.5倍
 		
 	def stockSignal(self):
+		conn = MySQLdb.connect(host='1w8573f055.iok.la', port=35941, user='root',passwd='123456',db='stock_basics_info_all_date')
+		
+		cur = conn.cursor()	
+		sql = "SELECT t.calendarDate from Stock_Dasic_Data.stock_TradeCal t where t.calendarDate>'2016-01-01' "
+		cur.execute(sql)	
+		days=cur.fetchall()
+		cur.close()	
+		
+		tableNameList=[]
+		for d in days:
+			tableNameList=(str.replace(d[0], '-', '')+'stock_basics')	
+			
+			cur = conn.cursor()	
+			sql = """
+			select * from %s where date ='%s'
+			and DailyFluctuation>%s
+			and volume/v_ma2>%s
+			and close>ma5
+			and ma5>ma10
+			and ma10>ma20
+			and BuyingVolume/SellingVolume>%s
+			""" %(tableNameList, d[0], self.fluctuation, self.orgVolRation, self.orgBuySellRate)
+			n=cur.execute(sql)
+			rs=cur.fetchall()
+			print '------------'+d[0]+"----------------"
+			print rs
+			cur.close()
+			
+		conn.close()		
 		pass
 	
 	
@@ -184,6 +226,7 @@ if __name__ == '__main__':
 		d += delta  
 	'''
 	
-	initStockInfoDateBatch()
+	#initStockInfoDateBatch()
 	
-	
+	s=MfSignal()
+	s.stockSignal()
