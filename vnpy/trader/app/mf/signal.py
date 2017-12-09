@@ -236,6 +236,110 @@ def initStockInfoDateBatchYear(yearEnd):
 
 	pass 
 
+#------------------------------------------------------------------------------------------------------------------
+def initStockOneByOne(yearEnd):
+	conn = MySQLdb.connect(host='1w8573f055.iok.la', port=35941, user='root',passwd='123456',db='stock_one_by_one',connect_timeout=36000)
+	#conn = mysql.connector.connect(host='1w8573f055.iok.la', port=35941, user='root',password='123456',database='stock_basics_info_all_date',use_unicode=True,charset="utf8")
+	
+	refresh = RefreshOption.LOG | RefreshOption.THREADS | RefreshOption.TABLES
+	
+	year=2011
+	
+	cur = conn.cursor()	
+	tablesql= "select table_name from information_schema.tables where table_schema='test' and table_type='base table' and table_name like '%stock_basics' "
+	cur.execute(tablesql)
+	tables=cur.fetchall()	
+	cur.close()
+	
+	templateSql="""
+	CREATE TABLE  IF NOT EXISTS  `TEMPLATETABLENAME` (
+	`index` bigint(20) DEFAULT NULL COMMENT '序号-基础数据-tushare',
+	`date` text COMMENT '日期和时间 低频数据时为：YYYY-MM-DD 高频数为：YYYY-MM-DD HH:MM',
+	`open` double DEFAULT NULL COMMENT '开盘价-基础数据-tushare',
+	`close` double DEFAULT NULL COMMENT '收盘价-基础数据-tushare',
+	`high` double DEFAULT NULL COMMENT '最高价-基础数据-tushare',
+	`low` double DEFAULT NULL COMMENT '最低价-基础数据-tushare',
+	`volume` double DEFAULT NULL COMMENT '成交量-基础数据-tushare',
+	`code` text COMMENT '证券代码-基础数据-tushare',
+	`ma5` double DEFAULT NULL COMMENT '5日均价-公式计算数据-基础数据',
+	`ma10` double DEFAULT NULL COMMENT '10日均价-公式计算数据-基础数据',
+	`ma20` double DEFAULT NULL COMMENT '20日均价-公式计算数据-基础数据',
+	`DailyFluctuation` double DEFAULT NULL COMMENT '每日波动率-公式计算数据-基础数据',
+	`v_ma2` double DEFAULT NULL COMMENT '2日均量-公式计算数据-基础数据',
+	`v_ma5` double DEFAULT NULL COMMENT '5日均量-公式计算数据-基础数据',
+	`v_ma10` double DEFAULT NULL COMMENT '10日均量-公式计算数据-基础数据',
+	`v_ma20` double DEFAULT NULL COMMENT '20日均量-公式计算数据-基础数据',
+	`d_fa2` double DEFAULT NULL COMMENT '2日涨幅-公式计算数据-基础数据',
+	`d_fa5` double DEFAULT NULL COMMENT '5日涨幅-公式计算数据-基础数据',
+	`d_fa10` double DEFAULT NULL COMMENT '10日涨幅-公式计算数据-基础数据',
+	`d_fa20` double DEFAULT NULL COMMENT '20日涨幅-公式计算数据-基础数据',
+	`d_fa30` double DEFAULT NULL COMMENT '30日涨幅-公式计算数据-基础数据',
+	`PB` double DEFAULT NULL COMMENT '市净率-补充数据-通联数据',
+	`PE` double DEFAULT NULL COMMENT '市盈率-补充数据-通联数据',
+	`PETTM` double DEFAULT NULL COMMENT '滚动市盈率-补充数据-通联数据',
+	`infoSource` text COMMENT '发布机构代码-补充数据-通联数据',
+	`sacIndustryCD` text COMMENT '交易市场-补充数据-通联数据',
+	`secShortName` text COMMENT '证券简称-补充数据-通联数据',
+	`amount` double DEFAULT NULL COMMENT '成交量-基础数据-wind',
+	`BuyingVolume` double DEFAULT NULL COMMENT '机构买入量-基础数据-wind',
+	`SellingVolume` double DEFAULT NULL COMMENT '机构卖出量-基础数据-wind',
+	`OrgVolume` double DEFAULT NULL COMMENT '机构当日成交额-公式计算数据-基础数据',
+	`org_v_ma2` double DEFAULT NULL COMMENT '2日均量-公式计算数据-基础数据',
+	`org_v_ma5` double DEFAULT NULL COMMENT '5日均量-公式计算数据-基础数据',
+	`org_v_ma10` double DEFAULT NULL COMMENT '10日均量-公式计算数据-基础数据',
+	`org_v_ma20` double DEFAULT NULL COMMENT '20日均量-公式计算数据-基础数据', 
+	`ma20_before50` double DEFAULT NULL COMMENT '50日前的20日均价-公式计算数据-基础数据'
+	KEY `ix_stock_basics_index` (`index`)
+  ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  """
+
+	for tt in tables:
+		t=tt[0]
+		cur = conn.cursor()	
+		sql1=templateSql.replace("TEMPLATETABLENAME", t)
+		cur.execute(sql1)
+		cur.close()
+		
+		cur = conn.cursor()	
+		sql2=" insert into "+t+" select * from test."+t+" order by date"
+		cur.execute(sql2)
+		cur.close()
+		
+		cur = conn.cursor()	
+		sql2=" update "+t+" t1 set t1.org_v_ma2= (select avg(OrgVolume) from test."+t+" t2 where t2.index>=t1.index-2 and t2.index<t1.index)"
+		cur.execute(sql2)
+		cur.close()
+		
+		cur = conn.cursor()	
+		sql2=" update "+t+" t1 set t1.org_v_ma5= (select avg(OrgVolume) from test."+t+" t2 where t2.index>=t1.index-5 and t2.index<t1.index)"
+		cur.execute(sql2)
+		cur.close()
+		
+		cur = conn.cursor()	
+		sql2=" update "+t+" t1 set t1.org_v_ma10= (select avg(OrgVolume) from test."+t+" t2 where t2.index>=t1.index-10 and t2.index<t1.index)"
+		cur.execute(sql2)
+		cur.close()
+		
+		cur = conn.cursor()	
+		sql2=" update "+t+" t1 set t1.org_v_ma20= (select avg(OrgVolume) from test."+t+" t2 where t2.index>=t1.index-20 and t2.index<t1.index)"
+		cur.execute(sql2)
+		cur.close()	
+		
+		cur = conn.cursor()	
+		sql2=" update "+t+" t1 set t1.ma20_before50= (select avg(close) from test."+t+" t2 where t2.index>=t1.index-70 and t2.index<t1.index-50)"
+		cur.execute(sql2)
+		cur.close()			
+
+		
+		conn.commit()				
+		
+		
+				
+			
+	conn.close()
+
+	pass 
+
 #-----------------------------------------------------------------------------------------------------------------------------------------
 class MfSignal(object):
 	
@@ -245,7 +349,7 @@ class MfSignal(object):
 		self.fluctuation=0.01	#涨跌幅，0为不设置
 		self.resonanceNum=4	#版块共振的信号数目		
 		self.pe=50			#pe，0为不设置
-		self.flu50=0.20		#前50日涨幅小于20%
+		self.fluN=0.20		#前N日涨幅小于20%
 		self.orgBuySellRate=2	#机构当日净买入额是机构当日净卖出额的2倍以上
 		self.orgVolRation=1.5	#当日机构成交量是前两日成交量均值的1.5倍
 	
@@ -272,8 +376,9 @@ class MfSignal(object):
 			and close>ma5
 			and ma5>ma10
 			and ma10>ma20
+			and d_fa30<%s
 			and BuyingVolume/SellingVolume>%s
-			""" %(tableNameList, d[0], self.fluctuation, self.orgVolRation, self.orgBuySellRate)
+			""" %(tableNameList, d[0], self.fluctuation, self.orgVolRation, self.fluN, self.orgBuySellRate)
 			n=cur.execute(sql)
 			rs=cur.fetchall()
 			#print '------------'+d[0]+"----------------"
@@ -308,8 +413,9 @@ class MfSignal(object):
 		    and close>ma5
 		    and ma5>ma10
 		    and ma10>ma20
+			and d_fa30<%s
 		    and BuyingVolume/SellingVolume>%s
-		    """ %(tableNameList, year, self.fluctuation, self.orgVolRation, self.orgBuySellRate)
+		    """ %(tableNameList, year, self.fluctuation, self.orgVolRation, self.fluN,  self.orgBuySellRate)
 			n=cur.execute(sql)
 			rs=cur.fetchall()
 			#print '------------'+str(year)+"----------------"
